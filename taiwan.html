@@ -30,7 +30,7 @@
 
     .info-panel { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 
-    /* 地圖白點（只顯示位置，不是 drop 目標） */
+    /* 白點：顯示位置（不是 drop 目標） */
     .dot-target {
       width: 14px;
       height: 14px;
@@ -115,12 +115,12 @@
 
           <!-- 左側方框欄（drop 目標） -->
           <div id="labels-container"
-               class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[180px] pointer-events-auto">
+               class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[190px] pointer-events-auto">
           </div>
         </div>
 
         <p class="text-xs text-slate-500 mt-2 text-center">
-          ✅ 拖曳請拖到左側方框；白點只顯示位置。箭頭已依白點高度排序，盡量避免交叉。
+          ✅ 車站由北到南排列；✅ 每條箭頭有專屬通道，保證不重疊；✅ 拖曳請拖到左側方框。
         </p>
       </div>
 
@@ -165,46 +165,40 @@
       instruction_text: '把右邊的車站名稱拖到左邊正確的位置吧！'
     };
 
-    // 車站資料：✅新增貢寮
+    // ✅ 含貢寮
     const stationsData = [
       { id:'songshan', name:'松山', description:'松山是台北重要的交通樞紐，這裡有熱鬧的饒河夜市，可以吃到各種美味的小吃喔！',
         svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="80" height="50" rx="5" fill="#FF6B6B"/><rect x="15" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="35" y="45" width="15" height="20" rx="2" fill="#4ECDC4"/><rect x="55" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="75" y="45" width="10" height="15" rx="2" fill="#4ECDC4"/><text x="50" y="82" text-anchor="middle" fill="white" font-size="10" font-weight="bold">夜市</text><circle cx="25" cy="25" r="12" fill="#FFD93D"/><text x="25" y="29" text-anchor="middle" fill="#FF6B6B" font-size="12">🍜</text><circle cx="75" cy="25" r="12" fill="#6BCB77"/><text x="75" y="29" text-anchor="middle" fill="white" font-size="12">🚃</text></svg>`},
       { id:'ruifang', name:'瑞芳', description:'瑞芳是通往九份山城的門戶，這裡曾經是採金礦的地方，有著豐富的礦業文化！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="50,10 20,50 80,50" fill="#8B7355"/><polygon points="50,25 30,50 70,50" fill="#A0522D"/><rect x="25" y="50" width="15" height="25" rx="2" fill="#CD853F"/><rect x="45" y="45" width="18" height="30" rx="2" fill="#DEB887"/><rect x="68" y="55" width="12" height="20" rx="2" fill="#CD853F"/><circle cx="75" cy="30" r="8" fill="#FFD700"/><text x="75" y="34" text-anchor="middle" fill="#8B4513" font-size="10">⛏️</text><rect x="30" y="80" width="40" height="8" rx="2" fill="#696969"/><circle cx="38" cy="88" r="4" fill="#333"/><circle cx="62" cy="88" r="4" fill="#333"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="50,10 20,50 80,50" fill="#8B7355"/><polygon points="50,25 30,50 70,50" fill="#A0522D"/><rect x="25" y="50" width="15" height="25" rx="2" fill="#CD853F"/><rect x="45" y="45" width="18" height="30" rx="2" fill="#DEB887"/><circle cx="75" cy="30" r="8" fill="#FFD700"/></svg>`},
       { id:'houtong', name:'猴硐', description:'猴硐是著名的貓村，有好多可愛的貓咪在車站附近散步，是貓咪愛好者的天堂！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="50" cy="65" rx="30" ry="25" fill="#FFA07A"/><ellipse cx="50" cy="45" rx="20" ry="18" fill="#FFA07A"/><polygon points="35,30 40,45 30,45" fill="#FFA07A"/><polygon points="65,30 70,45 60,45" fill="#FFA07A"/><polygon points="35,28 40,43 28,43" fill="#FFB6C1"/><polygon points="65,28 72,43 60,43" fill="#FFB6C1"/><circle cx="42" cy="42" r="4" fill="#333"/><circle cx="58" cy="42" r="4" fill="#333"/><circle cx="43" cy="43" r="1.5" fill="white"/><circle cx="59" cy="43" r="1.5" fill="white"/><ellipse cx="50" cy="52" rx="3" ry="2" fill="#FF69B4"/><path d="M47,55 Q50,58 53,55" stroke="#333" stroke-width="1.5" fill="none"/><line x1="30" y1="48" x2="20" y2="45" stroke="#333" stroke-width="1"/><line x1="30" y1="52" x2="20" y2="52" stroke="#333" stroke-width="1"/><line x1="70" y1="48" x2="80" y2="45" stroke="#333" stroke-width="1"/><line x1="70" y1="52" x2="80" y2="52" stroke="#333" stroke-width="1"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="50" cy="65" rx="30" ry="25" fill="#FFA07A"/><ellipse cx="50" cy="45" rx="20" ry="18" fill="#FFA07A"/><circle cx="42" cy="42" r="4" fill="#333"/><circle cx="58" cy="42" r="4" fill="#333"/></svg>`},
       { id:'sandiaoling', name:'三貂嶺', description:'三貂嶺是一個秘境車站，附近有美麗的瀑布和原始的自然風光，是探險的好地方！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="20,90 35,40 50,90" fill="#228B22"/><polygon points="50,90 65,30 80,90" fill="#2E8B57"/><polygon points="35,90 50,50 65,90" fill="#32CD32"/><path d="M70,20 Q72,50 75,50 Q73,50 75,80" stroke="#87CEEB" stroke-width="6" fill="none"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="20,90 35,40 50,90" fill="#228B22"/><path d="M70,20 Q72,50 75,50 Q73,50 75,80" stroke="#87CEEB" stroke-width="6" fill="none"/></svg>`},
       { id:'mudan', name:'牡丹', description:'牡丹是一個寧靜純樸的鄉村小站，周圍有美麗的田園風光和盛開的花朵！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#90EE90"/><circle cx="30" cy="40" r="15" fill="#FF69B4"/><circle cx="70" cy="35" r="12" fill="#FF6347"/><circle cx="50" cy="50" r="10" fill="#9370DB"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#90EE90"/><circle cx="30" cy="40" r="15" fill="#FF69B4"/></svg>`},
       { id:'shuangxi', name:'雙溪', description:'雙溪有古老的房屋和清澈的溪流，走在老街上可以感受到濃濃的懷舊氣息！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="15" y="35" width="35" height="35" fill="#8B4513"/><polygon points="15,35 32,15 50,35" fill="#A0522D"/><path d="M0,85 Q25,75 50,85 Q75,95 100,85" fill="#87CEEB"/></svg>`},
-
-      // ✅ 貢寮（新增）
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="15" y="35" width="35" height="35" fill="#8B4513"/><path d="M0,85 Q25,75 50,85 Q75,95 100,85" fill="#87CEEB"/></svg>`},
       { id:'gongliao', name:'貢寮', description:'貢寮靠近東北角海岸，這裡有山海景色和寧靜的聚落氛圍，也很適合安排輕旅行！',
         svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#7dd3fc"/><polygon points="10,80 30,40 50,80" fill="#22c55e"/><circle cx="78" cy="22" r="10" fill="#facc15"/></svg>`},
-
       { id:'fulong', name:'福隆', description:'福隆有美麗的金色沙灘，每年夏天還會舉辦熱鬧的海洋音樂祭，超級好玩！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="0" width="100" height="50" fill="#87CEEB"/><circle cx="80" cy="25" r="15" fill="#FFD700"/><path d="M0,50 Q50,40 100,50 L100,70 Q50,60 0,70 Z" fill="#F4A460"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="0" width="100" height="50" fill="#87CEEB"/><circle cx="80" cy="25" r="15" fill="#FFD700"/></svg>`},
       { id:'yilan', name:'宜蘭', description:'宜蘭是一個充滿童趣的城市，有很多親子景點和有趣的博物館，還有美味的小吃！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="25" height="40" rx="3" fill="#FF6B6B"/><rect x="38" y="30" width="25" height="50" rx="3" fill="#4ECDC4"/><rect x="66" y="45" width="25" height="35" rx="3" fill="#FFE66D"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="25" height="40" rx="3" fill="#FF6B6B"/><rect x="38" y="30" width="25" height="50" rx="3" fill="#4ECDC4"/></svg>`},
       { id:'suao', name:'蘇澳', description:'蘇澳是一個漁港小鎮，有新鮮的海鮮和特別的冷泉，泡冷泉消暑最棒了！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="50" width="100" height="50" fill="#4682B4"/><path d="M0,50 Q25,45 50,50 Q75,55 100,50" fill="#87CEEB"/></svg>`},
+        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="50" width="100" height="50" fill="#4682B4"/></svg>`},
       { id:'hualien', name:'花蓮', description:'花蓮有壯麗的太魯閣峽谷和美麗的海岸線，是台灣最美的地方之一！',
         svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="70" width="100" height="30" fill="#4682B4"/><polygon points="0,70 20,20 40,70" fill="#696969"/></svg>`},
     ];
 
     /**
-     * ✅ 這組座標是「直接對應你圖片白點」的百分比（比你原本更貼合）
-     * 其中 gongliao 用的是你圖上「多出來那顆白點」（你原本沒用到的那顆）
+     * ✅ 你目前這組「小白點都對應到了」的座標（百分比）
+     * ※ 貢寮使用那顆原本你圖上多出來、但舊版沒用到的白點。
      */
     const stationPositions = {
       ruifang:     { left: 83.8624, top: 17.4038 },
       houtong:     { left: 85.3469, top: 18.7050 },
-
-      // 你原本 10 站裡「多出來的白點」：現在拿來當貢寮
       gongliao:    { left: 85.3687, top: 20.7569 },
-
       sandiaoling: { left: 87.3841, top: 21.1630 },
       songshan:    { left: 71.4139, top: 21.7501 },
       mudan:       { left: 88.2645, top: 23.0472 },
@@ -228,15 +222,24 @@
       return shuffled;
     }
 
-    /**
-     * ✅ 重要：用白點 top 排序 → 左側方框也同順序排
-     * 這樣箭頭就「幾乎不會交叉」。
-     */
-    function getSortedStationsByDotY() {
+    // ✅ 由北到南：依白點 top 小→大 排序
+    function getSortedStationsNorthToSouth() {
       return stationsData
         .filter(s => stationPositions[s.id])
         .slice()
         .sort((a, b) => stationPositions[a.id].top - stationPositions[b.id].top);
+    }
+
+    /**
+     * ✅ 箭頭「完全不重疊」的關鍵：
+     * 每個 station 分配一個獨立 laneX（垂直段都在不同 X），因此線段不會重疊。
+     */
+    function computeLaneX(idx, count) {
+      // laneX 分佈在 [38, 66] 之間（可依喜好調整）
+      const minX = 38;
+      const maxX = 66;
+      if (count <= 1) return (minX + maxX) / 2;
+      return minX + (idx * (maxX - minX) / (count - 1));
     }
 
     function renderMapAndLabels() {
@@ -251,11 +254,11 @@
       svg.innerHTML = '';
       if (defs) svg.appendChild(defs);
 
-      const sortedStations = getSortedStationsByDotY();
+      const sortedStations = getSortedStationsNorthToSouth();
       const n = sortedStations.length;
 
-      // 左側方框對應的 anchor（viewBox 百分比）
-      const labelAnchorX = 24; // 線從方框附近出發
+      // 左側方框的連線起點（viewBox 百分比）
+      const labelAnchorX = 24;
       const topY = 8;
       const bottomY = 92;
 
@@ -276,7 +279,7 @@
         }
         dotsLayer.appendChild(dot);
 
-        // 2) 左側方框（drop 目標）
+        // 2) 左側方框：依 idx 均分位置（北到南）
         const labelY = (n === 1) ? 50 : (topY + (idx * (bottomY - topY) / (n - 1)));
 
         const label = document.createElement('div');
@@ -295,26 +298,25 @@
           label.classList.add('matched');
           label.addEventListener('click', () => showStationInfo(station));
         } else {
-          // ✅ drag/drop 綁在方框
+          // ✅ drop 目標改成方框
           label.addEventListener('dragover', handleDragOverLabel);
           label.addEventListener('dragleave', handleDragLeaveLabel);
           label.addEventListener('drop', handleDropOnLabel);
         }
-
         labelsLayer.appendChild(label);
 
-        // 3) 箭頭：用「折線」減少互相疊到的視覺干擾
-        // label (x1,y1) -> midX -> dot (x2,y2)
+        // 3) 箭頭：每站獨立 laneX → 完全不重疊
         const x1 = labelAnchorX;
         const y1 = labelY;
         const x2 = pos.left;
         const y2 = pos.top;
 
-        // 中繼點 x：依 idx 做一點點錯開，降低重疊的「貼在一起」
-        const midX = 40 + (idx % 3) * 2; // 40 / 42 / 44 三段錯位
+        const laneX = computeLaneX(idx, n);
 
+        // 用「折線」：M -> L(laneX,y1) -> L(laneX,y2) -> L(x2,y2)
+        // 因為每條 laneX 不同，所以所有垂直段不會重疊；水平段 y 也不同（labelY 都不同），不會重疊
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+        const d = `M ${x1} ${y1} L ${laneX} ${y1} L ${laneX} ${y2} L ${x2} ${y2}`;
         path.setAttribute('d', d);
         path.setAttribute('fill', 'none');
         path.setAttribute('stroke', isMatched ? 'rgba(16,185,129,0.85)' : 'rgba(51,65,85,0.55)');
@@ -366,7 +368,7 @@
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
     }
 
-    // ✅ 方框 drag/drop（目標）
+    // ✅ 方框 drag/drop
     function handleDragOverLabel(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -381,9 +383,7 @@
       const cardId = e.dataTransfer.getData('text/plain');
       const labelId = e.currentTarget.dataset.stationId;
 
-      if (cardId === labelId) {
-        matchStation(cardId);
-      }
+      if (cardId === labelId) matchStation(cardId);
     }
 
     // Touch handling for mobile
@@ -416,9 +416,7 @@
       const label = elemBelow?.closest('.label-box');
 
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
-      if (label && !label.classList.contains('matched')) {
-        label.classList.add('drag-over');
-      }
+      if (label && !label.classList.contains('matched')) label.classList.add('drag-over');
     }
 
     function handleTouchEnd(e) {
@@ -514,7 +512,6 @@
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
     }
 
-    // 等圖片載入再初始化
     const mapImg = document.getElementById('rail-map');
     if (mapImg && !mapImg.complete) {
       mapImg.addEventListener('load', resetGame, { once: true });
