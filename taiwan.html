@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>台灣鐵路車站配對遊戲</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -31,13 +30,13 @@
 
     .info-panel { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 
-    /* ✅ 地圖白點：拖放目標 */
+    /* ✅ 地圖白點（拖放目標） */
     .dot-target {
       width: 14px;
       height: 14px;
       border-radius: 9999px;
       background: white;
-      border: 2px solid rgba(51,65,85,0.7);
+      border: 2px solid rgba(51,65,85,0.75);
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
@@ -46,7 +45,7 @@
       transform: translate(-50%, -50%) scale(1.15);
     }
 
-    /* ✅ 右側標籤：整齊不重疊 */
+    /* ✅ 左側標籤（整齊排列，不重疊） */
     .label-box {
       border-radius: 16px;
       padding: 10px 10px;
@@ -82,16 +81,18 @@
       <p id="instruction-text" class="text-gray-600 text-sm md:text-base">把右邊的車站名稱拖到左邊正確的位置吧！</p>
     </header>
 
+    <!-- ✅ 左邊地圖加大：桌機時 left=2/3，右側卡片=1/3 -->
     <div class="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
 
-      <!-- Left: Map -->
-      <div class="lg:w-1/2 bg-white rounded-3xl shadow-xl p-4">
+      <!-- Left: Map (bigger) -->
+      <div class="lg:w-2/3 bg-white rounded-3xl shadow-xl p-4">
         <div class="flex items-center justify-center mb-3">
           <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
         </div>
 
-        <!-- ✅ 地圖：圖片 + 白點 + 連線箭頭 + 右側標籤欄 -->
+        <!-- ✅ 地圖：增加左側標籤欄空間（在圖片容器內） -->
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50">
+
           <img
             id="rail-map"
             src="https://i.ibb.co/dJMyfZxZ/image-psd.jpg"
@@ -114,19 +115,19 @@
           <!-- ✅ 地圖上的白點（拖放目標） -->
           <div id="stations-container" class="absolute inset-0"></div>
 
-          <!-- ✅ 右側整齊排列的標籤欄 -->
+          <!-- ✅ 左側整齊排列的標籤欄（放在地圖左側，不重疊） -->
           <div id="labels-container"
-               class="absolute top-2 bottom-2 right-2 flex flex-col justify-between gap-2 w-[160px] pointer-events-auto">
+               class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[170px] pointer-events-auto">
           </div>
         </div>
 
         <p class="text-xs text-slate-500 mt-2 text-center">
-          白點是拖曳目標；右側標籤依序排列，不會互相重疊。
+          白點是拖曳目標；方框固定排在地圖左側，並以箭頭指向白點。
         </p>
       </div>
 
       <!-- Right Panel -->
-      <div class="lg:w-1/2 flex flex-col gap-4">
+      <div class="lg:w-1/3 flex flex-col gap-4">
 
         <!-- Cards Area -->
         <div class="bg-white rounded-3xl shadow-xl p-4">
@@ -390,10 +391,7 @@
       }
     ];
 
-    /**
-     * ✅ 白點座標（百分比）— 已含貢寮
-     * 若貢寮微偏：調 gongliao 的 left/top 小數即可。
-     */
+    // ✅ 白點座標（你原本的都保留，新增貢寮）
     const stationPositions = {
       songshan:    { left: 71.3921, top: 21.7455 },
       ruifang:     { left: 83.8485, top: 17.3941 },
@@ -401,7 +399,10 @@
       sandiaoling: { left: 87.3830, top: 21.1612 },
       mudan:       { left: 88.2622, top: 23.0625 },
       shuangxi:    { left: 91.0622, top: 23.2647 },
-      gongliao:    { left: 92.1568, top: 23.7006 }, // ✅ 新增
+
+      // ✅ 新增：貢寮（先用雙溪↔福隆中點，若要更準再微調）
+      gongliao:    { left: 92.1568, top: 23.7006 },
+
       fulong:      { left: 93.2514, top: 24.1364 },
       yilan:       { left: 81.9706, top: 40.8866 },
       suao:        { left: 88.0022, top: 51.8680 },
@@ -421,7 +422,7 @@
       return shuffled;
     }
 
-    // ✅ 只讓白點有 drag-over 特效
+    // ✅ 白點 drag-over 效果（不讓方框跟著變形）
     function handleDragOverDot(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -438,15 +439,16 @@
       dotLayer.innerHTML = '';
       labelsLayer.innerHTML = '';
 
-      // 清掉舊線，但保留 defs
+      // 清掉舊線但保留 defs
       const defs = svg.querySelector('defs');
       svg.innerHTML = '';
       if (defs) svg.appendChild(defs);
 
       const n = stationsData.length;
 
-      // 標籤欄的線終點座標（百分比 viewBox）
-      const labelAnchorX = 83; // 線畫到標籤盒左側附近
+      // ✅ 左側標籤欄連線終點 X（百分比 viewBox）
+      // 線從白點(右側)指向左側標籤，所以 x2 要小
+      const labelAnchorX = 22;
       const topY = 8;
       const bottomY = 92;
 
@@ -455,7 +457,7 @@
         const pos = stationPositions[station.id];
         if (!pos) return;
 
-        // ====== 1) 地圖白點（拖放目標） ======
+        // 1) 白點
         const dot = document.createElement('div');
         dot.className = 'absolute dot-target';
         dot.dataset.stationId = station.id;
@@ -474,7 +476,7 @@
         }
         dotLayer.appendChild(dot);
 
-        // ====== 2) 右側標籤（整齊排列） ======
+        // 2) 左側標籤：依序由上往下均分排列
         const labelY = (n === 1)
           ? 50
           : topY + (index * (bottomY - topY) / (n - 1));
@@ -497,23 +499,24 @@
 
         labelsLayer.appendChild(label);
 
-        // ====== 3) 箭頭連線（dot -> label） ======
+        // 3) 連線箭頭：label -> dot（箭頭頭在白點那邊更直覺）
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 
-        const x1 = pos.left;
-        const y1 = pos.top;
-        const x2 = labelAnchorX;
-        const y2 = labelY;
+        const x1 = labelAnchorX;
+        const y1 = labelY;
+        const x2 = pos.left;
+        const y2 = pos.top;
 
-        const cx1 = x1 + 8;
+        // 控制點：讓線略微彎曲
+        const cx1 = x1 + 10;
         const cy1 = y1;
-        const cx2 = x2 - 6;
+        const cx2 = x2 - 10;
         const cy2 = y2;
 
         const d = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
         path.setAttribute('d', d);
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', isMatched ? 'rgba(16,185,129,0.8)' : 'rgba(51,65,85,0.65)');
+        path.setAttribute('stroke', isMatched ? 'rgba(16,185,129,0.85)' : 'rgba(51,65,85,0.65)');
         path.setAttribute('stroke-width', '0.8');
         path.setAttribute('marker-end', 'url(#arrowhead)');
         svg.appendChild(path);
@@ -569,9 +572,7 @@
       const cardId = e.dataTransfer.getData('text/plain');
       const spotId = e.currentTarget.dataset.stationId;
 
-      if (cardId === spotId) {
-        matchStation(cardId);
-      }
+      if (cardId === spotId) matchStation(cardId);
     }
 
     // Touch handling for mobile
@@ -604,9 +605,7 @@
       const dot = elemBelow?.closest('.dot-target');
 
       document.querySelectorAll('.dot-target').forEach(d => d.classList.remove('drag-over'));
-      if (dot && !matchedStations.has(dot.dataset.stationId)) {
-        dot.classList.add('drag-over');
-      }
+      if (dot && !matchedStations.has(dot.dataset.stationId)) dot.classList.add('drag-over');
     }
 
     function handleTouchEnd(e) {
