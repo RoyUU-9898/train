@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>台灣鐵路車站配對遊戲</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -11,28 +12,9 @@
   <style>
     body { box-sizing: border-box; font-family: 'Noto Sans TC', sans-serif; }
 
-    .station-card {
-      cursor: grab;
-      transition: all 0.2s ease;
-      user-select: none;
-    }
+    .station-card { cursor: grab; transition: all 0.2s ease; user-select: none; }
     .station-card:active { cursor: grabbing; }
-    .station-card.dragging {
-      opacity: 0.7;
-      transform: scale(1.05) rotate(2deg);
-    }
-
-    .station-spot { transition: all 0.2s ease; }
-    .station-spot.drag-over {
-      transform: translate(-50%, -50%) scale(1.08);
-      box-shadow: 0 0 18px rgba(74, 222, 128, 0.55);
-    }
-
-    .station-spot.matched { cursor: pointer; }
-    .station-spot.matched:hover {
-      transform: translate(-50%, -50%) scale(1.05);
-      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-    }
+    .station-card.dragging { opacity: 0.7; transform: scale(1.05) rotate(2deg); }
 
     @keyframes bounce-in {
       0% { transform: scale(0.3); opacity: 0; }
@@ -48,6 +30,46 @@
     .float-animation { animation: float 2s ease-in-out infinite; }
 
     .info-panel { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+
+    /* ✅ 地圖白點：拖放目標 */
+    .dot-target {
+      width: 14px;
+      height: 14px;
+      border-radius: 9999px;
+      background: white;
+      border: 2px solid rgba(51,65,85,0.7);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .dot-target.drag-over {
+      box-shadow: 0 0 18px rgba(34,197,94,0.65);
+      transform: translate(-50%, -50%) scale(1.15);
+    }
+
+    /* ✅ 右側標籤：整齊不重疊 */
+    .label-box {
+      border-radius: 16px;
+      padding: 10px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      line-height: 1.1;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(6px);
+      border: 2px dashed rgba(252, 211, 77, 0.9);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      user-select: none;
+    }
+    .label-box.matched {
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .label-box.matched:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(34, 197, 94, 0.22);
+    }
   </style>
 </head>
 
@@ -68,7 +90,7 @@
           <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
         </div>
 
-        <!-- ✅ 用圖片本身撐開比例，避免 contain 留白造成座標偏移 -->
+        <!-- ✅ 地圖：圖片 + 白點 + 連線箭頭 + 右側標籤欄 -->
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50">
           <img
             id="rail-map"
@@ -76,11 +98,30 @@
             class="w-full h-auto block select-none pointer-events-none"
             alt="rail map"
           />
+
+          <!-- ✅ 畫箭頭/連線的 SVG（不吃事件） -->
+          <svg id="links-layer"
+               class="absolute inset-0 w-full h-full pointer-events-none"
+               viewBox="0 0 100 100"
+               preserveAspectRatio="none">
+            <defs>
+              <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="rgba(51,65,85,0.8)"></path>
+              </marker>
+            </defs>
+          </svg>
+
+          <!-- ✅ 地圖上的白點（拖放目標） -->
           <div id="stations-container" class="absolute inset-0"></div>
+
+          <!-- ✅ 右側整齊排列的標籤欄 -->
+          <div id="labels-container"
+               class="absolute top-2 bottom-2 right-2 flex flex-col justify-between gap-2 w-[160px] pointer-events-auto">
+          </div>
         </div>
 
         <p class="text-xs text-slate-500 mt-2 text-center">
-          若仍微偏，直接微調 <code>stationPositions</code> 的 left/top 百分比即可。
+          白點是拖曳目標；右側標籤依序排列，不會互相重疊。
         </p>
       </div>
 
@@ -104,7 +145,7 @@
               class="bg-gradient-to-r from-green-400 to-emerald-500 h-full transition-all duration-500"
               style="width: 0%"></div>
           </div>
-          <p id="progress-text" class="text-center text-sm text-gray-500 mt-1">配對進度：0 / 10</p>
+          <p id="progress-text" class="text-center text-sm text-gray-500 mt-1">配對進度：0 / 11</p>
         </div>
 
         <!-- Info Panel -->
@@ -127,6 +168,7 @@
       instruction_text: '把右邊的車站名稱拖到左邊正確的位置吧！'
     };
 
+    // ✅ 新增：貢寮（放在雙溪與福隆之間）
     const stationsData = [
       {
         id: 'songshan',
@@ -247,6 +289,23 @@
           <ellipse cx="70" cy="87" rx="3" ry="1.5" fill="#4682B4"/>
         </svg>`
       },
+
+      /* ✅ 新增：貢寮 */
+      {
+        id: 'gongliao',
+        name: '貢寮',
+        description: '貢寮靠近東北角海岸，這裡有山海景色和寧靜的聚落氛圍，也很適合安排輕旅行！',
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+          <rect x="0" y="60" width="100" height="40" fill="#7dd3fc"/>
+          <path d="M0,60 Q25,52 50,60 Q75,68 100,60" fill="#38bdf8"/>
+          <polygon points="10,80 30,40 50,80" fill="#22c55e"/>
+          <polygon points="40,85 60,45 80,85" fill="#16a34a"/>
+          <circle cx="78" cy="22" r="10" fill="#facc15"/>
+          <circle cx="20" cy="70" r="4" fill="white" opacity="0.9"/>
+          <circle cx="30" cy="74" r="3" fill="white" opacity="0.9"/>
+        </svg>`
+      },
+
       {
         id: 'fulong',
         name: '福隆',
@@ -332,8 +391,8 @@
     ];
 
     /**
-     * ✅ 白點座標（百分比）
-     * 若你換了不同尺寸/裁切的圖片，這裡要跟著重算。
+     * ✅ 白點座標（百分比）— 已含貢寮
+     * 若貢寮微偏：調 gongliao 的 left/top 小數即可。
      */
     const stationPositions = {
       songshan:    { left: 71.3921, top: 21.7455 },
@@ -342,6 +401,7 @@
       sandiaoling: { left: 87.3830, top: 21.1612 },
       mudan:       { left: 88.2622, top: 23.0625 },
       shuangxi:    { left: 91.0622, top: 23.2647 },
+      gongliao:    { left: 92.1568, top: 23.7006 }, // ✅ 新增
       fulong:      { left: 93.2514, top: 24.1364 },
       yilan:       { left: 81.9706, top: 40.8866 },
       suao:        { left: 88.0022, top: 51.8680 },
@@ -361,49 +421,102 @@
       return shuffled;
     }
 
+    // ✅ 只讓白點有 drag-over 特效
+    function handleDragOverDot(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+    function handleDragLeaveDot(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
     function renderStations() {
-      const container = document.getElementById('stations-container');
-      container.innerHTML = '';
+      const dotLayer = document.getElementById('stations-container');
+      const labelsLayer = document.getElementById('labels-container');
+      const svg = document.getElementById('links-layer');
+
+      dotLayer.innerHTML = '';
+      labelsLayer.innerHTML = '';
+
+      // 清掉舊線，但保留 defs
+      const defs = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defs) svg.appendChild(defs);
+
+      const n = stationsData.length;
+
+      // 標籤欄的線終點座標（百分比 viewBox）
+      const labelAnchorX = 83; // 線畫到標籤盒左側附近
+      const topY = 8;
+      const bottomY = 92;
 
       stationsData.forEach((station, index) => {
         const isMatched = matchedStations.has(station.id);
         const pos = stationPositions[station.id];
         if (!pos) return;
 
-        const spot = document.createElement('div');
-        spot.className = `station-spot absolute`;
-        spot.dataset.stationId = station.id;
+        // ====== 1) 地圖白點（拖放目標） ======
+        const dot = document.createElement('div');
+        dot.className = 'absolute dot-target';
+        dot.dataset.stationId = station.id;
+        dot.style.left = pos.left + '%';
+        dot.style.top = pos.top + '%';
+        dot.style.transform = 'translate(-50%, -50%)';
 
-        // ✅ 位置：中心對準白點
-        spot.style.left = pos.left + '%';
-        spot.style.top = pos.top + '%';
-        spot.style.transform = 'translate(-50%, -50%)';
+        if (isMatched) {
+          dot.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+          dot.style.border = '2px solid rgba(16,185,129,0.95)';
+          dot.addEventListener('click', () => showStationInfo(station));
+        } else {
+          dot.addEventListener('dragover', handleDragOverDot);
+          dot.addEventListener('dragleave', handleDragLeaveDot);
+          dot.addEventListener('drop', handleDrop);
+        }
+        dotLayer.appendChild(dot);
 
-        // ✅ 外觀：未配對是白色半透明框，已配對是綠色
-        spot.innerHTML = `
-          <div class="flex items-center gap-2 px-3 py-2 rounded-2xl shadow-sm ${
-            isMatched
-              ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-white'
-              : 'bg-white/85 backdrop-blur border-2 border-dashed border-amber-300'
-          }">
-            <span class="text-sm font-extrabold ${isMatched ? 'text-white' : 'text-amber-700'}">${index + 1}</span>
-            <div class="min-w-[4.5rem] text-xs font-bold ${isMatched ? 'text-white' : 'text-amber-500'}">
-              ${isMatched ? station.name : '？？？'}
-            </div>
-            ${isMatched ? '<span class="text-sm">✓</span>' : ''}
+        // ====== 2) 右側標籤（整齊排列） ======
+        const labelY = (n === 1)
+          ? 50
+          : topY + (index * (bottomY - topY) / (n - 1));
+
+        const label = document.createElement('div');
+        label.className = 'label-box';
+        label.dataset.stationId = station.id;
+        label.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-5 text-right">${index + 1}</span>
+            <span class="flex-1">${isMatched ? station.name : '？？？'}</span>
+            ${isMatched ? '<span>✓</span>' : ''}
           </div>
         `;
 
         if (isMatched) {
-          spot.classList.add('matched');
-          spot.addEventListener('click', () => showStationInfo(station));
-        } else {
-          spot.addEventListener('dragover', handleDragOver);
-          spot.addEventListener('dragleave', handleDragLeave);
-          spot.addEventListener('drop', handleDrop);
+          label.classList.add('matched');
+          label.addEventListener('click', () => showStationInfo(station));
         }
 
-        container.appendChild(spot);
+        labelsLayer.appendChild(label);
+
+        // ====== 3) 箭頭連線（dot -> label） ======
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+        const x1 = pos.left;
+        const y1 = pos.top;
+        const x2 = labelAnchorX;
+        const y2 = labelY;
+
+        const cx1 = x1 + 8;
+        const cy1 = y1;
+        const cx2 = x2 - 6;
+        const cy2 = y2;
+
+        const d = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', isMatched ? 'rgba(16,185,129,0.8)' : 'rgba(51,65,85,0.65)');
+        path.setAttribute('stroke-width', '0.8');
+        path.setAttribute('marker-end', 'url(#arrowhead)');
+        svg.appendChild(path);
       });
     }
 
@@ -446,16 +559,7 @@
     function handleDragEnd(e) {
       e.target.classList.remove('dragging');
       draggedCard = null;
-      document.querySelectorAll('.station-spot').forEach(spot => spot.classList.remove('drag-over'));
-    }
-
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.currentTarget.classList.add('drag-over');
-    }
-
-    function handleDragLeave(e) {
-      e.currentTarget.classList.remove('drag-over');
+      document.querySelectorAll('.dot-target').forEach(dot => dot.classList.remove('drag-over'));
     }
 
     function handleDrop(e) {
@@ -465,7 +569,9 @@
       const cardId = e.dataTransfer.getData('text/plain');
       const spotId = e.currentTarget.dataset.stationId;
 
-      if (cardId === spotId) matchStation(cardId);
+      if (cardId === spotId) {
+        matchStation(cardId);
+      }
     }
 
     // Touch handling for mobile
@@ -495,10 +601,12 @@
       updateClonedCardPosition(touch.clientX, touch.clientY);
 
       const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-      const spot = elemBelow?.closest('.station-spot');
+      const dot = elemBelow?.closest('.dot-target');
 
-      document.querySelectorAll('.station-spot').forEach(s => s.classList.remove('drag-over'));
-      if (spot && !spot.classList.contains('matched')) spot.classList.add('drag-over');
+      document.querySelectorAll('.dot-target').forEach(d => d.classList.remove('drag-over'));
+      if (dot && !matchedStations.has(dot.dataset.stationId)) {
+        dot.classList.add('drag-over');
+      }
     }
 
     function handleTouchEnd(e) {
@@ -506,13 +614,13 @@
 
       const touch = e.changedTouches[0];
       const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-      const spot = elemBelow?.closest('.station-spot');
+      const dot = elemBelow?.closest('.dot-target');
 
-      if (spot && spot.dataset.stationId === draggedCard.dataset.stationId) {
+      if (dot && dot.dataset.stationId === draggedCard.dataset.stationId) {
         matchStation(draggedCard.dataset.stationId);
       }
 
-      document.querySelectorAll('.station-spot').forEach(s => s.classList.remove('drag-over'));
+      document.querySelectorAll('.dot-target').forEach(d => d.classList.remove('drag-over'));
       clonedCard.remove();
       clonedCard = null;
       draggedCard = null;
@@ -594,7 +702,13 @@
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
     }
 
-    resetGame();
+    // ✅ 等圖片載入後再初始化（避免初次計算閃動）
+    const mapImg = document.getElementById('rail-map');
+    if (mapImg && !mapImg.complete) {
+      mapImg.addEventListener('load', resetGame, { once: true });
+    } else {
+      resetGame();
+    }
   </script>
 </body>
 </html>
