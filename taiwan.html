@@ -128,7 +128,7 @@
             alt="rail map"
           />
 
-          <!-- 線更細、箭頭更小 -->
+          <!-- 線更細、箭頭更小（iPad contain 時，終點會用「圖片實際顯示區域」對齊） -->
           <svg id="links-layer"
                class="absolute inset-0 w-full h-full pointer-events-none"
                viewBox="0 0 100 100"
@@ -216,7 +216,7 @@
           <rect x="25" y="50" width="15" height="25" rx="2" fill="#CD853F"/>
           <rect x="45" y="45" width="18" height="30" rx="2" fill="#DEB887"/>
           <rect x="68" y="55" width="12" height="20" rx="2" fill="#CD853F"/>
-          <circle cx="75" cy="30" r="8" fill="#FFD700"/>
+          <circle cx="75" y="30" r="8" fill="#FFD700"/>
           <text x="75" y="34" text-anchor="middle" fill="#8B4513" font-size="10">⛏️</text>
           <rect x="30" y="80" width="40" height="8" rx="2" fill="#696969"/>
           <circle cx="38" cy="88" r="4" fill="#333"/>
@@ -272,7 +272,7 @@
           <line x1="30" y1="55" x2="30" y2="75" stroke="#228B22" stroke-width="3"/>
           <line x1="70" y1="47" x2="70" y2="70" stroke="#228B22" stroke-width="3"/>
           <line x1="50" y1="60" x2="50" y2="78" stroke="#228B22" stroke-width="3"/>
-          <ellipse cx="25" y="75" rx="8" ry="3" fill="#32CD32"/>
+          <ellipse cx="25" cy="75" rx="8" ry="3" fill="#32CD32"/>
           <ellipse cx="55" cy="78" rx="6" ry="2" fill="#32CD32"/>
           <circle cx="85" cy="20" r="12" fill="#FFD700"/>
         </svg>` },
@@ -398,6 +398,48 @@
       return shuffled;
     }
 
+    /**
+     * ✅ object-fit: contain 時，圖片會有留白
+     * 這裡算出「圖片實際顯示在 map-wrap 裡的矩形」(client px)
+     */
+    function getDisplayedImageRect() {
+      const mapWrap = document.getElementById('map-wrap');
+      const img = document.getElementById('rail-map');
+
+      const wrapRect = mapWrap.getBoundingClientRect();
+      const wrapW = wrapRect.width;
+      const wrapH = wrapRect.height;
+
+      const naturalW = img.naturalWidth || wrapW;
+      const naturalH = img.naturalHeight || wrapH;
+
+      const imgRatio = naturalW / naturalH;
+      const wrapRatio = wrapW / wrapH;
+
+      let drawnW, drawnH, offsetX, offsetY;
+
+      // contain 計算
+      if (imgRatio > wrapRatio) {
+        drawnW = wrapW;
+        drawnH = wrapW / imgRatio;
+        offsetX = 0;
+        offsetY = (wrapH - drawnH) / 2;
+      } else {
+        drawnH = wrapH;
+        drawnW = wrapH * imgRatio;
+        offsetY = 0;
+        offsetX = (wrapW - drawnW) / 2;
+      }
+
+      return {
+        left: wrapRect.left + offsetX,
+        top: wrapRect.top + offsetY,
+        width: drawnW,
+        height: drawnH,
+        wrapRect
+      };
+    }
+
     function redrawLinksUsingLabelRects() {
       const svg = document.getElementById('links-layer');
       const mapWrap = document.getElementById('map-wrap');
@@ -407,6 +449,7 @@
       svg.innerHTML = '';
       if (defs) svg.appendChild(defs);
 
+      const imgRect = getDisplayedImageRect();
       const wrapRect = mapWrap.getBoundingClientRect();
 
       labels.forEach(label => {
@@ -414,6 +457,7 @@
         const pos = stationPositions[id];
         if (!pos) return;
 
+        // 起點：方框中心（轉成 SVG 百分比）
         const labelRect = label.getBoundingClientRect();
         const centerX = labelRect.left + labelRect.width / 2;
         const centerY = labelRect.top + labelRect.height / 2;
@@ -421,8 +465,13 @@
         const x1 = ((centerX - wrapRect.left) / wrapRect.width) * 100;
         const y1 = ((centerY - wrapRect.top) / wrapRect.height) * 100;
 
-        const x2 = pos.left;
-        const y2 = pos.top;
+        // 終點：把 stationPositions(以圖片為基準的%) 映射到「實際顯示圖片矩形」
+        const targetClientX = imgRect.left + (pos.left / 100) * imgRect.width;
+        const targetClientY = imgRect.top + (pos.top / 100) * imgRect.height;
+
+        // 再轉回 wrap 百分比（SVG viewBox 0-100）
+        const x2 = ((targetClientX - wrapRect.left) / wrapRect.width) * 100;
+        const y2 = ((targetClientY - wrapRect.top) / wrapRect.height) * 100;
 
         const cx1 = Math.min(100, x1 + 10);
         const cy1 = y1;
@@ -474,7 +523,7 @@
         labelsLayer.appendChild(label);
       });
 
-      requestAnimationFrame(() => redrawLinksUsingLabelRects());
+      scheduleRedraw();
     }
 
     function renderCards() {
@@ -634,11 +683,19 @@
           點擊已配對的方框<br>來看看當地的特色吧！
         </p>
       `;
+
+      scheduleRedraw();
     }
+
+    // ✅ 更穩的重畫：跑兩次 RAF，確保 DOM 排版完成
+    const scheduleRedraw = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => redrawLinksUsingLabelRects()));
+    };
 
     function onConfigChange(config) {
       document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
       document.getElementById('instruction-text').textContent = config.instruction_text || defaultConfig.instruction_text;
+      scheduleRedraw();
     }
 
     function mapToCapabilities(config) {
@@ -662,16 +719,15 @@
     if (mapImg && !mapImg.complete) {
       mapImg.addEventListener('load', () => {
         resetGame();
-        requestAnimationFrame(() => redrawLinksUsingLabelRects());
+        scheduleRedraw();
       }, { once: true });
     } else {
       resetGame();
-      requestAnimationFrame(() => redrawLinksUsingLabelRects());
+      scheduleRedraw();
     }
 
-    window.addEventListener('resize', () => {
-      requestAnimationFrame(() => redrawLinksUsingLabelRects());
-    });
+    window.addEventListener('resize', scheduleRedraw);
+    window.addEventListener('orientationchange', scheduleRedraw);
   </script>
 </body>
 </html>
