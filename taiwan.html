@@ -93,7 +93,7 @@
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50">
           <img
             id="rail-map"
-            src="https://i.ibb.co/dJMyfZxZ/image-psd.jpg"
+            src="https://drive.google.com/uc?export=view&id=1seHZrLHhOWo9thn52HQVuP2xzL0v-MzR"
             class="w-full h-auto block select-none pointer-events-none"
             alt="rail map"
           />
@@ -165,7 +165,6 @@
       instruction_text: '把右邊的車站名稱拖到左邊正確的位置吧！'
     };
 
-    // ✅ 含貢寮
     const stationsData = [
       { id:'songshan', name:'松山', description:'松山是台北重要的交通樞紐，這裡有熱鬧的饒河夜市，可以吃到各種美味的小吃喔！',
         svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="80" height="50" rx="5" fill="#FF6B6B"/><rect x="15" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="35" y="45" width="15" height="20" rx="2" fill="#4ECDC4"/><rect x="55" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="75" y="45" width="10" height="15" rx="2" fill="#4ECDC4"/><text x="50" y="82" text-anchor="middle" fill="white" font-size="10" font-weight="bold">夜市</text><circle cx="25" cy="25" r="12" fill="#FFD93D"/><text x="25" y="29" text-anchor="middle" fill="#FF6B6B" font-size="12">🍜</text><circle cx="75" cy="25" r="12" fill="#6BCB77"/><text x="75" y="29" text-anchor="middle" fill="white" font-size="12">🚃</text></svg>`},
@@ -191,10 +190,6 @@
         svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="70" width="100" height="30" fill="#4682B4"/><polygon points="0,70 20,20 40,70" fill="#696969"/></svg>`},
     ];
 
-    /**
-     * ✅ 你目前這組「小白點都對應到了」的座標（百分比）
-     * ※ 貢寮使用那顆原本你圖上多出來、但舊版沒用到的白點。
-     */
     const stationPositions = {
       ruifang:     { left: 83.8624, top: 17.4038 },
       houtong:     { left: 85.3469, top: 18.7050 },
@@ -222,7 +217,6 @@
       return shuffled;
     }
 
-    // ✅ 由北到南：依白點 top 小→大 排序
     function getSortedStationsNorthToSouth() {
       return stationsData
         .filter(s => stationPositions[s.id])
@@ -230,12 +224,7 @@
         .sort((a, b) => stationPositions[a.id].top - stationPositions[b.id].top);
     }
 
-    /**
-     * ✅ 箭頭「完全不重疊」的關鍵：
-     * 每個 station 分配一個獨立 laneX（垂直段都在不同 X），因此線段不會重疊。
-     */
     function computeLaneX(idx, count) {
-      // laneX 分佈在 [38, 66] 之間（可依喜好調整）
       const minX = 38;
       const maxX = 66;
       if (count <= 1) return (minX + maxX) / 2;
@@ -257,7 +246,6 @@
       const sortedStations = getSortedStationsNorthToSouth();
       const n = sortedStations.length;
 
-      // 左側方框的連線起點（viewBox 百分比）
       const labelAnchorX = 24;
       const topY = 8;
       const bottomY = 92;
@@ -266,7 +254,6 @@
         const isMatched = matchedStations.has(station.id);
         const pos = stationPositions[station.id];
 
-        // 1) 白點
         const dot = document.createElement('div');
         dot.className = 'absolute dot-target';
         dot.dataset.stationId = station.id;
@@ -279,7 +266,6 @@
         }
         dotsLayer.appendChild(dot);
 
-        // 2) 左側方框：依 idx 均分位置（北到南）
         const labelY = (n === 1) ? 50 : (topY + (idx * (bottomY - topY) / (n - 1)));
 
         const label = document.createElement('div');
@@ -298,14 +284,12 @@
           label.classList.add('matched');
           label.addEventListener('click', () => showStationInfo(station));
         } else {
-          // ✅ drop 目標改成方框
           label.addEventListener('dragover', handleDragOverLabel);
           label.addEventListener('dragleave', handleDragLeaveLabel);
           label.addEventListener('drop', handleDropOnLabel);
         }
         labelsLayer.appendChild(label);
 
-        // 3) 箭頭：每站獨立 laneX → 完全不重疊
         const x1 = labelAnchorX;
         const y1 = labelY;
         const x2 = pos.left;
@@ -313,8 +297,6 @@
 
         const laneX = computeLaneX(idx, n);
 
-        // 用「折線」：M -> L(laneX,y1) -> L(laneX,y2) -> L(x2,y2)
-        // 因為每條 laneX 不同，所以所有垂直段不會重疊；水平段 y 也不同（labelY 都不同），不會重疊
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const d = `M ${x1} ${y1} L ${laneX} ${y1} L ${laneX} ${y2} L ${x2} ${y2}`;
         path.setAttribute('d', d);
@@ -341,7 +323,6 @@
           card.addEventListener('dragstart', handleDragStart);
           card.addEventListener('dragend', handleDragEnd);
 
-          // Touch events for mobile
           card.addEventListener('touchstart', handleTouchStart, { passive: false });
           card.addEventListener('touchmove', handleTouchMove, { passive: false });
           card.addEventListener('touchend', handleTouchEnd);
@@ -368,7 +349,6 @@
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
     }
 
-    // ✅ 方框 drag/drop
     function handleDragOverLabel(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -386,7 +366,6 @@
       if (cardId === labelId) matchStation(cardId);
     }
 
-    // Touch handling for mobile
     let clonedCard = null;
 
     function handleTouchStart(e) {
