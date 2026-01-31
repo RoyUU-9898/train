@@ -30,7 +30,6 @@
 
     .info-panel { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 
-    /* 白點：顯示位置（不是 drop 目標） */
     .dot-target {
       width: 14px;
       height: 14px;
@@ -46,7 +45,6 @@
       cursor: pointer;
     }
 
-    /* 左側方框：drop 目標 */
     .label-box {
       border-radius: 16px;
       padding: 10px 10px;
@@ -84,21 +82,31 @@
 
     <div class="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
 
-      <!-- 左邊地圖加大 -->
       <div class="lg:w-2/3 bg-white rounded-3xl shadow-xl p-4">
         <div class="flex items-center justify-center mb-3">
           <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
         </div>
 
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50">
+          <!-- ✅ 這張圖會由 JS 自動改成你的 Drive 資料夾內 image 檔 -->
           <img
             id="rail-map"
-            src="https://drive.google.com/uc?export=view&id=1seHZrLHhOWo9thn52HQVuP2xzL0v-MzR"
+            src=""
             class="w-full h-auto block select-none pointer-events-none"
             alt="rail map"
           />
 
-          <!-- 箭頭層 -->
+          <div id="map-error"
+               class="absolute inset-0 hidden items-center justify-center text-center p-6">
+            <div class="bg-white/90 rounded-2xl p-4 shadow">
+              <div class="text-lg font-bold text-rose-600 mb-1">圖片載入失敗</div>
+              <div class="text-sm text-slate-600 leading-relaxed">
+                可能原因：Drive 權限不是「知道連結的人都可檢視」、<br>
+                或尚未填入 API Key / 未啟用 Drive API。
+              </div>
+            </div>
+          </div>
+
           <svg id="links-layer"
                class="absolute inset-0 w-full h-full pointer-events-none"
                viewBox="0 0 100 100"
@@ -110,23 +118,19 @@
             </defs>
           </svg>
 
-          <!-- 白點層 -->
           <div id="dots-container" class="absolute inset-0"></div>
 
-          <!-- 左側方框欄（drop 目標） -->
           <div id="labels-container"
                class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[190px] pointer-events-auto">
           </div>
         </div>
 
         <p class="text-xs text-slate-500 mt-2 text-center">
-          ✅ 車站由北到南排列；✅ 每條箭頭有專屬通道，保證不重疊；✅ 拖曳請拖到左側方框。
+          ✅ 背景圖會從你的 Drive 資料夾自動找檔名為 <code>image</code> 的圖片載入
         </p>
       </div>
 
-      <!-- 右側卡片與資訊 -->
       <div class="lg:w-1/3 flex flex-col gap-4">
-
         <div class="bg-white rounded-3xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-3">
             <span class="text-lg font-bold text-orange-600">🎴 車站卡片</span>
@@ -154,40 +158,35 @@
             </p>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 
   <script>
+    /***********************
+     * ✅ 你要改的只有這裡
+     ***********************/
+    const DRIVE_FOLDER_ID = "18zRUbZnxWJ-vhjw7gbfgq1J7TXaotIWG"; // 你的資料夾
+    const DRIVE_TARGET_NAME = "image"; // 檔名（不含副檔名也可）
+    const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"; // ← 換成你的 API Key
+
     const defaultConfig = {
       game_title: '🚂 台灣鐵路車站配對遊戲 🚃',
       instruction_text: '把右邊的車站名稱拖到左邊正確的位置吧！'
     };
 
     const stationsData = [
-      { id:'songshan', name:'松山', description:'松山是台北重要的交通樞紐，這裡有熱鬧的饒河夜市，可以吃到各種美味的小吃喔！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="80" height="50" rx="5" fill="#FF6B6B"/><rect x="15" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="35" y="45" width="15" height="20" rx="2" fill="#4ECDC4"/><rect x="55" y="45" width="15" height="20" rx="2" fill="#FFE66D"/><rect x="75" y="45" width="10" height="15" rx="2" fill="#4ECDC4"/><text x="50" y="82" text-anchor="middle" fill="white" font-size="10" font-weight="bold">夜市</text><circle cx="25" cy="25" r="12" fill="#FFD93D"/><text x="25" y="29" text-anchor="middle" fill="#FF6B6B" font-size="12">🍜</text><circle cx="75" cy="25" r="12" fill="#6BCB77"/><text x="75" y="29" text-anchor="middle" fill="white" font-size="12">🚃</text></svg>`},
-      { id:'ruifang', name:'瑞芳', description:'瑞芳是通往九份山城的門戶，這裡曾經是採金礦的地方，有著豐富的礦業文化！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="50,10 20,50 80,50" fill="#8B7355"/><polygon points="50,25 30,50 70,50" fill="#A0522D"/><rect x="25" y="50" width="15" height="25" rx="2" fill="#CD853F"/><rect x="45" y="45" width="18" height="30" rx="2" fill="#DEB887"/><circle cx="75" cy="30" r="8" fill="#FFD700"/></svg>`},
-      { id:'houtong', name:'猴硐', description:'猴硐是著名的貓村，有好多可愛的貓咪在車站附近散步，是貓咪愛好者的天堂！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="50" cy="65" rx="30" ry="25" fill="#FFA07A"/><ellipse cx="50" cy="45" rx="20" ry="18" fill="#FFA07A"/><circle cx="42" cy="42" r="4" fill="#333"/><circle cx="58" cy="42" r="4" fill="#333"/></svg>`},
-      { id:'sandiaoling', name:'三貂嶺', description:'三貂嶺是一個秘境車站，附近有美麗的瀑布和原始的自然風光，是探險的好地方！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="20,90 35,40 50,90" fill="#228B22"/><path d="M70,20 Q72,50 75,50 Q73,50 75,80" stroke="#87CEEB" stroke-width="6" fill="none"/></svg>`},
-      { id:'mudan', name:'牡丹', description:'牡丹是一個寧靜純樸的鄉村小站，周圍有美麗的田園風光和盛開的花朵！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#90EE90"/><circle cx="30" cy="40" r="15" fill="#FF69B4"/></svg>`},
-      { id:'shuangxi', name:'雙溪', description:'雙溪有古老的房屋和清澈的溪流，走在老街上可以感受到濃濃的懷舊氣息！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="15" y="35" width="35" height="35" fill="#8B4513"/><path d="M0,85 Q25,75 50,85 Q75,95 100,85" fill="#87CEEB"/></svg>`},
-      { id:'gongliao', name:'貢寮', description:'貢寮靠近東北角海岸，這裡有山海景色和寧靜的聚落氛圍，也很適合安排輕旅行！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#7dd3fc"/><polygon points="10,80 30,40 50,80" fill="#22c55e"/><circle cx="78" cy="22" r="10" fill="#facc15"/></svg>`},
-      { id:'fulong', name:'福隆', description:'福隆有美麗的金色沙灘，每年夏天還會舉辦熱鬧的海洋音樂祭，超級好玩！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="0" width="100" height="50" fill="#87CEEB"/><circle cx="80" cy="25" r="15" fill="#FFD700"/></svg>`},
-      { id:'yilan', name:'宜蘭', description:'宜蘭是一個充滿童趣的城市，有很多親子景點和有趣的博物館，還有美味的小吃！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="25" height="40" rx="3" fill="#FF6B6B"/><rect x="38" y="30" width="25" height="50" rx="3" fill="#4ECDC4"/></svg>`},
-      { id:'suao', name:'蘇澳', description:'蘇澳是一個漁港小鎮，有新鮮的海鮮和特別的冷泉，泡冷泉消暑最棒了！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="50" width="100" height="50" fill="#4682B4"/></svg>`},
-      { id:'hualien', name:'花蓮', description:'花蓮有壯麗的太魯閣峽谷和美麗的海岸線，是台灣最美的地方之一！',
-        svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="70" width="100" height="30" fill="#4682B4"/><polygon points="0,70 20,20 40,70" fill="#696969"/></svg>`},
+      { id:'songshan', name:'松山', description:'松山是台北重要的交通樞紐，這裡有熱鬧的饒河夜市，可以吃到各種美味的小吃喔！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="10" y="40" width="80" height="50" rx="5" fill="#FF6B6B"/></svg>`},
+      { id:'ruifang', name:'瑞芳', description:'瑞芳是通往九份山城的門戶，這裡曾經是採金礦的地方，有著豐富的礦業文化！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="50,10 20,50 80,50" fill="#8B7355"/></svg>`},
+      { id:'houtong', name:'猴硐', description:'猴硐是著名的貓村，有好多可愛的貓咪在車站附近散步，是貓咪愛好者的天堂！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="25" fill="#FFA07A"/></svg>`},
+      { id:'sandiaoling', name:'三貂嶺', description:'三貂嶺是一個秘境車站，附近有美麗的瀑布和原始的自然風光，是探險的好地方！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M10,80 L50,20 L90,80" stroke="#22c55e" stroke-width="6" fill="none"/></svg>`},
+      { id:'mudan', name:'牡丹', description:'牡丹是一個寧靜純樸的鄉村小站，周圍有美麗的田園風光和盛開的花朵！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="20" fill="#FF69B4"/></svg>`},
+      { id:'shuangxi', name:'雙溪', description:'雙溪有古老的房屋和清澈的溪流，走在老街上可以感受到濃濃的懷舊氣息！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="20" y="35" width="60" height="40" fill="#8B4513"/></svg>`},
+      { id:'gongliao', name:'貢寮', description:'貢寮靠近東北角海岸，這裡有山海景色和寧靜的聚落氛圍，也很適合安排輕旅行！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="60" width="100" height="40" fill="#7dd3fc"/></svg>`},
+      { id:'fulong', name:'福隆', description:'福隆有美麗的金色沙灘，每年夏天還會舉辦熱鬧的海洋音樂祭，超級好玩！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="70" cy="30" r="15" fill="#FFD700"/></svg>`},
+      { id:'yilan', name:'宜蘭', description:'宜蘭是一個充滿童趣的城市，有很多親子景點和有趣的博物館，還有美味的小吃！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="20" y="25" width="60" height="50" fill="#4ECDC4"/></svg>`},
+      { id:'suao', name:'蘇澳', description:'蘇澳是一個漁港小鎮，有新鮮的海鮮和特別的冷泉，泡冷泉消暑最棒了！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><rect x="0" y="55" width="100" height="45" fill="#4682B4"/></svg>`},
+      { id:'hualien', name:'花蓮', description:'花蓮有壯麗的太魯閣峽谷和美麗的海岸線，是台灣最美的地方之一！', svg:`<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="0,80 25,25 50,80" fill="#696969"/></svg>`},
     ];
 
     const stationPositions = {
@@ -294,7 +293,6 @@
         const y1 = labelY;
         const x2 = pos.left;
         const y2 = pos.top;
-
         const laneX = computeLaneX(idx, n);
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -342,13 +340,11 @@
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', e.target.dataset.stationId);
     }
-
     function handleDragEnd(e) {
       e.target.classList.remove('dragging');
       draggedCard = null;
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
     }
-
     function handleDragOverLabel(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -359,15 +355,12 @@
     function handleDropOnLabel(e) {
       e.preventDefault();
       e.currentTarget.classList.remove('drag-over');
-
       const cardId = e.dataTransfer.getData('text/plain');
       const labelId = e.currentTarget.dataset.stationId;
-
       if (cardId === labelId) matchStation(cardId);
     }
 
     let clonedCard = null;
-
     function handleTouchStart(e) {
       e.preventDefault();
       const touch = e.touches[0];
@@ -380,14 +373,11 @@
       clonedCard.style.opacity = '0.85';
       clonedCard.style.transform = 'scale(1.1)';
       document.body.appendChild(clonedCard);
-
       updateClonedCardPosition(touch.clientX, touch.clientY);
     }
-
     function handleTouchMove(e) {
       e.preventDefault();
       if (!clonedCard) return;
-
       const touch = e.touches[0];
       updateClonedCardPosition(touch.clientX, touch.clientY);
 
@@ -397,10 +387,8 @@
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
       if (label && !label.classList.contains('matched')) label.classList.add('drag-over');
     }
-
     function handleTouchEnd(e) {
       if (!clonedCard || !draggedCard) return;
-
       const touch = e.changedTouches[0];
       const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
       const label = elemBelow?.closest('.label-box');
@@ -414,7 +402,6 @@
       clonedCard = null;
       draggedCard = null;
     }
-
     function updateClonedCardPosition(x, y) {
       if (!clonedCard) return;
       clonedCard.style.left = (x - 40) + 'px';
@@ -426,7 +413,6 @@
       renderMapAndLabels();
       renderCards();
       updateProgress();
-
       const station = stationsData.find(s => s.id === stationId);
       if (station) showStationInfo(station);
     }
@@ -448,15 +434,93 @@
       const total = stationsData.length;
       const matched = matchedStations.size;
       const percentage = (matched / total) * 100;
-
       document.getElementById('progress-fill').style.width = percentage + '%';
       document.getElementById('progress-text').textContent = `配對進度：${matched} / ${total}`;
+    }
+
+    function onConfigChange(config) {
+      document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
+      document.getElementById('instruction-text').textContent = config.instruction_text || defaultConfig.instruction_text;
+    }
+    function mapToCapabilities() {
+      return { recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined };
+    }
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['game_title', config.game_title || defaultConfig.game_title],
+        ['instruction_text', config.instruction_text || defaultConfig.instruction_text]
+      ]);
+    }
+
+    /**
+     * ✅ 從資料夾找出檔名為 image 的圖片，並取得 fileId → 組成可顯示的下載連結
+     * 會優先找 name 精準相等，其次找 image.jpg/png/webp…等。
+     */
+    async function resolveDriveImageUrl() {
+      if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "YOUR_GOOGLE_API_KEY") {
+        throw new Error("missing_api_key");
+      }
+
+      // Google Drive API v3 files.list
+      // q: in parents + mimeType starts with image/ + (name = 'image' OR name contains 'image.')
+      const q = [
+        `'${DRIVE_FOLDER_ID}' in parents`,
+        `trashed = false`,
+        `(mimeType contains 'image/')`,
+        `(`,
+        `name = '${DRIVE_TARGET_NAME}'`,
+        `or name contains '${DRIVE_TARGET_NAME}.'`,
+        `)`
+      ].join(" and ");
+
+      const fields = "files(id,name,mimeType,modifiedTime),nextPageToken";
+      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime desc&pageSize=10&key=${encodeURIComponent(GOOGLE_API_KEY)}`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("drive_api_error_" + res.status);
+      const data = await res.json();
+
+      const files = Array.isArray(data.files) ? data.files : [];
+      if (files.length === 0) throw new Error("file_not_found");
+
+      // 優先：name 完全等於 image；否則取最新修改的第一個
+      const exact = files.find(f => (f.name || "").toLowerCase() === DRIVE_TARGET_NAME.toLowerCase());
+      const chosen = exact || files[0];
+
+      // 用 uc?export=download 比較穩
+      return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(chosen.id)}`;
+    }
+
+    async function initMapImageThenGame() {
+      const img = document.getElementById('rail-map');
+      const err = document.getElementById('map-error');
+
+      try {
+        const url = await resolveDriveImageUrl();
+        img.src = url;
+
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("img_load_failed"));
+        });
+
+        // 圖載入成功才開始遊戲
+        resetGame();
+
+      } catch (e) {
+        console.error(e);
+        err.classList.remove('hidden');
+        err.classList.add('flex');
+
+        // 即使圖片失敗，仍可讓遊戲跑（只是沒背景）
+        img.src = "";
+        resetGame();
+      }
     }
 
     function resetGame() {
       matchedStations = new Set();
       currentCards = shuffleArray(stationsData);
-
       renderMapAndLabels();
       renderCards();
       updateProgress();
@@ -469,34 +533,14 @@
       `;
     }
 
-    function onConfigChange(config) {
-      document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
-      document.getElementById('instruction-text').textContent = config.instruction_text || defaultConfig.instruction_text;
-    }
-
-    function mapToCapabilities(config) {
-      return { recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined };
-    }
-
-    function mapToEditPanelValues(config) {
-      return new Map([
-        ['game_title', config.game_title || defaultConfig.game_title],
-        ['instruction_text', config.instruction_text || defaultConfig.instruction_text]
-      ]);
-    }
-
     document.getElementById('reset-btn').addEventListener('click', resetGame);
 
     if (window.elementSdk) {
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
     }
 
-    const mapImg = document.getElementById('rail-map');
-    if (mapImg && !mapImg.complete) {
-      mapImg.addEventListener('load', resetGame, { once: true });
-    } else {
-      resetGame();
-    }
+    // ✅ 用 Drive API 取得背景圖後再啟動
+    initMapImageThenGame();
   </script>
 </body>
 </html>
