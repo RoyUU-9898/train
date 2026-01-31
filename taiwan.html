@@ -41,18 +41,6 @@
       transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
 
-    /* 調整模式：可拖白點 */
-    .dot-target.editable {
-      cursor: grab;
-      transform: translate(-50%, -50%) scale(1.06);
-      box-shadow: 0 0 16px rgba(59,130,246,0.35);
-      border-color: rgba(59,130,246,0.9);
-    }
-    .dot-target.editable:active {
-      cursor: grabbing;
-      transform: translate(-50%, -50%) scale(1.12);
-    }
-
     /* 左側方框 */
     .label-box {
       border-radius: 16px;
@@ -101,13 +89,8 @@
 
       <!-- Left: Map -->
       <div class="lg:w-2/3 bg-white rounded-3xl shadow-xl p-4">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-center mb-3">
           <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
-
-          <button id="edit-toggle"
-            class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg">
-            ⚙️ 調整白點：關
-          </button>
         </div>
 
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50" id="map-wrap">
@@ -139,7 +122,7 @@
         </div>
 
         <p class="text-xs text-slate-500 mt-2 text-center">
-          方框為配對目標（拖到方框）；「調整白點」只會開放 三貂嶺/牡丹/雙溪/貢寮/福隆 可拖曳。
+          方框為配對目標（拖到方框）；配對完成後可點擊方框或白點查看特色。
         </p>
       </div>
 
@@ -183,9 +166,6 @@
       game_title: '🚂 台灣鐵路車站配對遊戲 🚃',
       instruction_text: '把右邊的車站名稱拖到左邊正確的方框吧！'
     };
-
-    // ✅ 只允許這 5 個點在調整模式可拖
-    const ADJUSTABLE_IDS = new Set(['sandiaoling','mudan','shuangxi','gongliao','fulong']);
 
     const stationsData = [
       { id: 'songshan', name: '松山', description: '松山是台北重要的交通樞紐，這裡有熱鬧的饒河夜市，可以吃到各種美味的小吃喔！',
@@ -232,8 +212,8 @@
           <line x1="30" y1="52" x2="20" y2="52" stroke="#333" stroke-width="1"/>
           <line x1="70" y1="48" x2="80" y2="45" stroke="#333" stroke-width="1"/>
           <line x1="70" y1="52" x2="80" y2="52" stroke="#333" stroke-width="1"/>
-          <ellipse cx="35" cy="70" rx="8" ry="6" fill="#FFA07A"/>
-          <ellipse cx="65" cy="70" rx="8" ry="6" fill="#FFA07A"/>
+          <ellipse cx="35" y="70" rx="8" ry="6" fill="#FFA07A"/>
+          <ellipse cx="65" y="70" rx="8" ry="6" fill="#FFA07A"/>
           <path d="M75,65 Q85,55 80,75" stroke="#FFA07A" stroke-width="8" fill="none" stroke-linecap="round"/>
         </svg>` },
       { id: 'sandiaoling', name: '三貂嶺', description: '三貂嶺是一個秘境車站，附近有美麗的瀑布和原始的自然風光，是探險的好地方！',
@@ -263,9 +243,9 @@
           <circle cx="50" cy="50" r="2" fill="#FFD700"/>
           <line x1="30" y1="55" x2="30" y2="75" stroke="#228B22" stroke-width="3"/>
           <line x1="70" y1="47" x2="70" y2="70" stroke="#228B22" stroke-width="3"/>
-          <line x1="50" y1="60" x2="50" y2="78" stroke="#228B22" stroke-width="3"/>
-          <ellipse cx="25" cy="75" rx="8" ry="3" fill="#32CD32"/>
-          <ellipse cx="55" cy="78" rx="6" ry="2" fill="#32CD32"/>
+          <line x1="50" y="60" x2="50" y2="78" stroke="#228B22" stroke-width="3"/>
+          <ellipse cx="25" y="75" rx="8" ry="3" fill="#32CD32"/>
+          <ellipse cx="55" y="78" rx="6" ry="2" fill="#32CD32"/>
           <circle cx="85" cy="20" r="12" fill="#FFD700"/>
         </svg>` },
       { id: 'shuangxi', name: '雙溪', description: '雙溪有古老的房屋和清澈的溪流，走在老街上可以感受到濃濃的懷舊氣息！',
@@ -280,8 +260,8 @@
           <rect x="78" y="48" width="6" height="6" fill="#87CEEB"/>
           <path d="M0,85 Q25,75 50,85 Q75,95 100,85" fill="#87CEEB"/>
           <path d="M0,88 Q25,78 50,88 Q75,98 100,88" fill="#B0E0E6"/>
-          <ellipse cx="30" cy="83" rx="4" ry="2" fill="#4682B4"/>
-          <ellipse cx="70" cy="87" rx="3" ry="1.5" fill="#4682B4"/>
+          <ellipse cx="30" y="83" rx="4" ry="2" fill="#4682B4"/>
+          <ellipse cx="70" y="87" rx="3" ry="1.5" fill="#4682B4"/>
         </svg>` },
       { id: 'gongliao', name: '貢寮', description: '貢寮靠近東北角海岸，這裡有山海景色和寧靜的聚落氛圍，也很適合安排輕旅行！',
         svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
@@ -361,25 +341,23 @@
         </svg>` },
     ];
 
-    // 初始座標（你拖完會自動在 Console 印出更新後 JSON）
     const stationPositions = {
       songshan:    { left: 71.3921, top: 21.7455 },
-  ruifang:     { left: 83.8485, top: 17.3941 },
-  houtong:     { left: 85.3277, top: 18.6803 },
-  sandiaoling: { left: 85.1615, top: 20.6331 },
-  mudan:       { left: 87.6282, top: 21.2583 },
-  shuangxi:    { left: 87.9982, top: 23.2591 },
-  gongliao:    { left: 90.9581, top: 23.5092 },
-  fulong:      { left: 93.2906, top: 24.2098 },
-  yilan:       { left: 81.9706, top: 40.8866 },
-  suao:        { left: 88.0022, top: 51.8680 },
-  hualien:     { left: 73.1468, top: 91.5765 },
+      ruifang:     { left: 83.8485, top: 17.3941 },
+      houtong:     { left: 85.3277, top: 18.6803 },
+      sandiaoling: { left: 85.1615, top: 20.6331 },
+      mudan:       { left: 87.6282, top: 21.2583 },
+      shuangxi:    { left: 87.9982, top: 23.2591 },
+      gongliao:    { left: 90.9581, top: 23.5092 },
+      fulong:      { left: 93.2906, top: 24.2098 },
+      yilan:       { left: 81.9706, top: 40.8866 },
+      suao:        { left: 88.0022, top: 51.8680 },
+      hualien:     { left: 73.1468, top: 91.5765 },
     };
 
     let matchedStations = new Set();
     let currentCards = [];
     let draggedCard = null;
-    let editMode = false;
 
     // touch
     let clonedCard = null;
@@ -422,18 +400,10 @@
         dot.style.top = pos.top + '%';
         dot.style.transform = 'translate(-50%, -50%)';
 
-        const canAdjustThisDot = editMode && ADJUSTABLE_IDS.has(station.id);
-
-        if (canAdjustThisDot) {
-          dot.classList.add('editable');
-          dot.title = `拖曳調整：${station.name}`;
-          enableDotDrag(dot);
-        } else {
-          dot.title = isMatched ? `點擊查看：${station.name}` : `尚未配對：${station.name}`;
-          dot.addEventListener('click', () => {
-            if (matchedStations.has(station.id)) showStationInfo(station);
-          });
-        }
+        dot.title = isMatched ? `點擊查看：${station.name}` : `尚未配對：${station.name}`;
+        dot.addEventListener('click', () => {
+          if (matchedStations.has(station.id)) showStationInfo(station);
+        });
 
         if (isMatched) {
           dot.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
@@ -485,50 +455,6 @@
         path.setAttribute('marker-end', 'url(#arrowhead)');
         svg.appendChild(path);
       });
-    }
-
-    function enableDotDrag(dot) {
-      let dragging = false;
-      const mapWrap = document.getElementById('map-wrap');
-
-      const getPercentPos = (clientX, clientY) => {
-        const rect = mapWrap.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-        const left = (x / rect.width) * 100;
-        const top = (y / rect.height) * 100;
-        return {
-          left: Math.max(0, Math.min(100, left)),
-          top: Math.max(0, Math.min(100, top)),
-        };
-      };
-
-      const onPointerDown = (e) => {
-        e.preventDefault();
-        dragging = true;
-        dot.setPointerCapture?.(e.pointerId);
-      };
-
-      const onPointerMove = (e) => {
-        if (!dragging) return;
-        const id = dot.dataset.stationId;
-        const p = getPercentPos(e.clientX, e.clientY);
-        stationPositions[id] = { left: +p.left.toFixed(4), top: +p.top.toFixed(4) };
-        dot.style.left = stationPositions[id].left + '%';
-        dot.style.top = stationPositions[id].top + '%';
-        renderStations();
-      };
-
-      const onPointerUp = () => {
-        if (!dragging) return;
-        dragging = false;
-        console.log('✅ 更新 stationPositions：\n', JSON.stringify(stationPositions, null, 2));
-      };
-
-      dot.addEventListener('pointerdown', onPointerDown);
-      dot.addEventListener('pointermove', onPointerMove);
-      dot.addEventListener('pointerup', onPointerUp);
-      dot.addEventListener('pointercancel', onPointerUp);
     }
 
     function renderCards() {
@@ -709,15 +635,6 @@
     }
 
     document.getElementById('reset-btn').addEventListener('click', resetGame);
-
-    document.getElementById('edit-toggle').addEventListener('click', () => {
-      editMode = !editMode;
-      document.getElementById('edit-toggle').textContent = `⚙️ 調整白點：${editMode ? '開' : '關'}`;
-      document.getElementById('instruction-text').textContent = editMode
-        ? '調整模式：只可拖曳 三貂嶺/牡丹/雙溪/貢寮/福隆 的白點；拖完看 Console 複製 stationPositions 回來'
-        : defaultConfig.instruction_text;
-      renderStations();
-    });
 
     if (window.elementSdk) {
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
