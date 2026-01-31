@@ -88,7 +88,7 @@
         </div>
 
         <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50">
-          <!-- ✅ 這張圖會由 JS 自動改成你的 Drive 資料夾內 image 檔 -->
+          <!-- ✅ 嘗試直接用 Google Photos 分享連結 -->
           <img
             id="rail-map"
             src=""
@@ -101,8 +101,9 @@
             <div class="bg-white/90 rounded-2xl p-4 shadow">
               <div class="text-lg font-bold text-rose-600 mb-1">圖片載入失敗</div>
               <div class="text-sm text-slate-600 leading-relaxed">
-                可能原因：Drive 權限不是「知道連結的人都可檢視」、<br>
-                或尚未填入 API Key / 未啟用 Drive API。
+                Google Photos 分享頁通常不是「直接圖片檔網址」，<br>
+                所以 <code>&lt;img&gt;</code> 常會顯示不出來。<br><br>
+                解法：改用「可直連圖片」的網址，或用 Apps Script 當中繼抓圖。
               </div>
             </div>
           </div>
@@ -119,15 +120,10 @@
           </svg>
 
           <div id="dots-container" class="absolute inset-0"></div>
-
           <div id="labels-container"
                class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[190px] pointer-events-auto">
           </div>
         </div>
-
-        <p class="text-xs text-slate-500 mt-2 text-center">
-          ✅ 背景圖會從你的 Drive 資料夾自動找檔名為 <code>image</code> 的圖片載入
-        </p>
       </div>
 
       <div class="lg:w-1/3 flex flex-col gap-4">
@@ -163,12 +159,8 @@
   </div>
 
   <script>
-    /***********************
-     * ✅ 你要改的只有這裡
-     ***********************/
-    const DRIVE_FOLDER_ID = "18zRUbZnxWJ-vhjw7gbfgq1J7TXaotIWG"; // 你的資料夾
-    const DRIVE_TARGET_NAME = "image"; // 檔名（不含副檔名也可）
-    const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"; // ← 換成你的 API Key
+    const GOOGLE_PHOTOS_SHARE_URL =
+      "https://photos.google.com/album/AF1QipMEud_BpjEYmyQu2RNnxObrgFHnd7e1BDp7PK0/photo/AF1QipOgErg3CmrlWah5QJOwviR6GZi-YDaz5t9Jzqo";
 
     const defaultConfig = {
       game_title: '🚂 台灣鐵路車站配對遊戲 🚃',
@@ -309,7 +301,6 @@
     function renderCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
-
       currentCards.forEach(station => {
         if (!matchedStations.has(station.id)) {
           const card = document.createElement('div');
@@ -328,7 +319,6 @@
           container.appendChild(card);
         }
       });
-
       if (currentCards.every(s => matchedStations.has(s.id))) {
         container.innerHTML = '<p class="text-green-600 font-bold text-lg">🎉 太棒了！全部配對完成！</p>';
       }
@@ -345,13 +335,8 @@
       draggedCard = null;
       document.querySelectorAll('.label-box').forEach(l => l.classList.remove('drag-over'));
     }
-    function handleDragOverLabel(e) {
-      e.preventDefault();
-      e.currentTarget.classList.add('drag-over');
-    }
-    function handleDragLeaveLabel(e) {
-      e.currentTarget.classList.remove('drag-over');
-    }
+    function handleDragOverLabel(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function handleDragLeaveLabel(e) { e.currentTarget.classList.remove('drag-over'); }
     function handleDropOnLabel(e) {
       e.preventDefault();
       e.currentTarget.classList.remove('drag-over');
@@ -422,9 +407,7 @@
       infoContent.innerHTML = `
         <div class="bounce-in">
           <h3 class="text-xl font-bold text-amber-800 mb-3">🚉 ${station.name}車站</h3>
-          <div class="w-32 h-32 mx-auto mb-3 float-animation">
-            ${station.svg}
-          </div>
+          <div class="w-32 h-32 mx-auto mb-3 float-animation">${station.svg}</div>
           <p class="text-amber-700 text-sm leading-relaxed px-2">${station.description}</p>
         </div>
       `;
@@ -436,6 +419,20 @@
       const percentage = (matched / total) * 100;
       document.getElementById('progress-fill').style.width = percentage + '%';
       document.getElementById('progress-text').textContent = `配對進度：${matched} / ${total}`;
+    }
+
+    function resetGame() {
+      matchedStations = new Set();
+      currentCards = shuffleArray(stationsData);
+      renderMapAndLabels();
+      renderCards();
+      updateProgress();
+      document.getElementById('info-content').innerHTML = `
+        <div class="text-6xl mb-3">🚉</div>
+        <p class="text-lg text-amber-800 font-medium">
+          點擊已配對的車站<br>來看看當地的特色吧！
+        </p>
+      `;
     }
 
     function onConfigChange(config) {
@@ -452,85 +449,22 @@
       ]);
     }
 
-    /**
-     * ✅ 從資料夾找出檔名為 image 的圖片，並取得 fileId → 組成可顯示的下載連結
-     * 會優先找 name 精準相等，其次找 image.jpg/png/webp…等。
-     */
-    async function resolveDriveImageUrl() {
-      if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "YOUR_GOOGLE_API_KEY") {
-        throw new Error("missing_api_key");
-      }
-
-      // Google Drive API v3 files.list
-      // q: in parents + mimeType starts with image/ + (name = 'image' OR name contains 'image.')
-      const q = [
-        `'${DRIVE_FOLDER_ID}' in parents`,
-        `trashed = false`,
-        `(mimeType contains 'image/')`,
-        `(`,
-        `name = '${DRIVE_TARGET_NAME}'`,
-        `or name contains '${DRIVE_TARGET_NAME}.'`,
-        `)`
-      ].join(" and ");
-
-      const fields = "files(id,name,mimeType,modifiedTime),nextPageToken";
-      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime desc&pageSize=10&key=${encodeURIComponent(GOOGLE_API_KEY)}`;
-
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("drive_api_error_" + res.status);
-      const data = await res.json();
-
-      const files = Array.isArray(data.files) ? data.files : [];
-      if (files.length === 0) throw new Error("file_not_found");
-
-      // 優先：name 完全等於 image；否則取最新修改的第一個
-      const exact = files.find(f => (f.name || "").toLowerCase() === DRIVE_TARGET_NAME.toLowerCase());
-      const chosen = exact || files[0];
-
-      // 用 uc?export=download 比較穩
-      return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(chosen.id)}`;
-    }
-
-    async function initMapImageThenGame() {
+    function initBackgroundTryGooglePhotos() {
       const img = document.getElementById('rail-map');
       const err = document.getElementById('map-error');
 
-      try {
-        const url = await resolveDriveImageUrl();
-        img.src = url;
+      // ✅ 直接嘗試
+      img.src = GOOGLE_PHOTOS_SHARE_URL;
 
-        await new Promise((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error("img_load_failed"));
-        });
+      img.onload = () => {
+        err.classList.add('hidden');
+        err.classList.remove('flex');
+      };
 
-        // 圖載入成功才開始遊戲
-        resetGame();
-
-      } catch (e) {
-        console.error(e);
+      img.onerror = () => {
         err.classList.remove('hidden');
         err.classList.add('flex');
-
-        // 即使圖片失敗，仍可讓遊戲跑（只是沒背景）
-        img.src = "";
-        resetGame();
-      }
-    }
-
-    function resetGame() {
-      matchedStations = new Set();
-      currentCards = shuffleArray(stationsData);
-      renderMapAndLabels();
-      renderCards();
-      updateProgress();
-
-      document.getElementById('info-content').innerHTML = `
-        <div class="text-6xl mb-3">🚉</div>
-        <p class="text-lg text-amber-800 font-medium">
-          點擊已配對的車站<br>來看看當地的特色吧！
-        </p>
-      `;
+      };
     }
 
     document.getElementById('reset-btn').addEventListener('click', resetGame);
@@ -539,8 +473,8 @@
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
     }
 
-    // ✅ 用 Drive API 取得背景圖後再啟動
-    initMapImageThenGame();
+    initBackgroundTryGooglePhotos();
+    resetGame();
   </script>
 </body>
 </html>
