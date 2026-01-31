@@ -45,7 +45,6 @@
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       user-select: none;
     }
-
     .label-box.droppable { cursor: pointer; }
     .label-box.drag-over {
       transform: translateY(-1px) scale(1.01);
@@ -53,7 +52,6 @@
       border-color: rgba(34,197,94,0.9);
       background: rgba(236, 253, 245, 0.95);
     }
-
     .label-box.matched {
       background: linear-gradient(135deg, #4ade80, #22c55e);
       color: white;
@@ -65,7 +63,7 @@
       box-shadow: 0 10px 22px rgba(34, 197, 94, 0.22);
     }
 
-    /* ✅ 全頁一屏 */
+    /* ✅ 全頁結構 */
     #app {
       min-height: 100vh;
       display: flex;
@@ -76,27 +74,24 @@
       min-height: 0;
     }
 
-    /* ✅ iPad 橫向一頁顯示（鎖定） */
+    /* ✅ iPad 橫向：不改圖片呈現方式，只縮放整頁，避免箭頭飄 */
     @media (min-width: 768px) and (max-width: 1200px) and (orientation: landscape) {
-      body { overflow: hidden; }         /* 不捲動 */
-      #app { padding: 8px !important; }  /* 外距縮小 */
+      body { overflow: hidden; }
+
+      /* 外距縮小 */
+      #app { padding: 6px !important; }
 
       header { margin-bottom: 6px !important; }
       #game-title { font-size: 22px !important; line-height: 1.2; margin-bottom: 4px !important; }
       #instruction-text { font-size: 13px !important; }
 
-      /* 左右卡片 padding 更緊 */
-      .panel-tight { padding: 10px !important; }
-
-      /* 地圖高度：固定，確保完整顯示 */
-      #map-wrap { height: 72vh; }
-      #rail-map {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: contain !important; /* ✅ 全圖完整顯示 */
+      /* ✅ 整體縮放（關鍵） */
+      .scale-wrap {
+        transform: scale(0.92);
+        transform-origin: top center;
       }
 
-      /* 右側 info 面板不要太高 */
+      /* 右側面板稍微緊湊 */
       #info-panel { min-height: 210px !important; }
       #cards-container { min-height: 96px !important; }
     }
@@ -111,80 +106,84 @@
       <p id="instruction-text" class="text-gray-600 text-sm md:text-base">把右邊的車站名稱拖到左邊正確的方框吧！</p>
     </header>
 
-    <div class="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto main-content">
+    <!-- ✅ iPad 橫向會縮放這一層（不改圖片 layout） -->
+    <div class="scale-wrap">
+      <div class="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto main-content">
 
-      <!-- Left: Map -->
-      <div class="lg:w-2/3 bg-white rounded-3xl shadow-xl p-4 panel-tight">
-        <div class="flex items-center justify-center mb-3">
-          <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
-        </div>
-
-        <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50" id="map-wrap">
-
-          <img
-            id="rail-map"
-            src="https://i.ibb.co/DPC0xtz8/image-psd.jpg"
-            class="w-full h-auto block select-none pointer-events-none"
-            alt="rail map"
-          />
-
-          <!-- 線更細、箭頭更小（iPad contain 時，終點會用「圖片實際顯示區域」對齊） -->
-          <svg id="links-layer"
-               class="absolute inset-0 w-full h-full pointer-events-none"
-               viewBox="0 0 100 100"
-               preserveAspectRatio="none">
-            <defs>
-              <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto">
-                <path d="M0,0 L4,2 L0,4 Z" fill="rgba(51,65,85,0.75)"></path>
-              </marker>
-            </defs>
-          </svg>
-
-          <!-- ✅ 不顯示白點 -->
-          <div id="stations-container" class="absolute inset-0 pointer-events-none"></div>
-
-          <!-- 左側方框 -->
-          <div id="labels-container"
-               class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[170px] pointer-events-auto">
-          </div>
-        </div>
-
-        <p class="text-xs text-slate-500 mt-2 text-center">
-          方框為配對目標（拖到方框）；配對完成後可點擊方框查看特色。
-        </p>
-      </div>
-
-      <!-- Right Panel -->
-      <div class="lg:w-1/3 flex flex-col gap-4">
-
-        <div class="bg-white rounded-3xl shadow-xl p-4 panel-tight">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-lg font-bold text-orange-600">🎴 車站卡片</span>
-            <button id="reset-btn"
-              class="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-4 py-2 rounded-full text-sm font-bold hover:from-pink-500 hover:to-rose-500 transition-all shadow-md hover:shadow-lg">
-              🔄 重新開始
-            </button>
+        <!-- Left: Map -->
+        <div class="lg:w-2/3 bg-white rounded-3xl shadow-xl p-4">
+          <div class="flex items-center justify-center mb-3">
+            <span class="text-lg font-bold text-slate-700">🗺️ 北迴線鐵路地圖</span>
           </div>
 
-          <div id="cards-container" class="flex flex-wrap gap-2 justify-center min-h-[120px]"></div>
+          <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50" id="map-wrap">
 
-          <div id="progress-bar" class="mt-3 bg-gray-200 rounded-full h-3 overflow-hidden">
-            <div id="progress-fill"
-              class="bg-gradient-to-r from-green-400 to-emerald-500 h-full transition-all duration-500"
-              style="width: 0%"></div>
+            <!-- ✅ 維持跟電腦一致：width 100%, height auto（不使用 contain） -->
+            <img
+              id="rail-map"
+              src="https://i.ibb.co/DPC0xtz8/image-psd.jpg"
+              class="w-full h-auto block select-none pointer-events-none"
+              alt="rail map"
+            />
+
+            <!-- 箭頭：更細更小 -->
+            <svg id="links-layer"
+                 class="absolute inset-0 w-full h-full pointer-events-none"
+                 viewBox="0 0 100 100"
+                 preserveAspectRatio="none">
+              <defs>
+                <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto">
+                  <path d="M0,0 L4,2 L0,4 Z" fill="rgba(51,65,85,0.75)"></path>
+                </marker>
+              </defs>
+            </svg>
+
+            <!-- 不顯示白點 -->
+            <div id="stations-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <!-- 左側方框 -->
+            <div id="labels-container"
+                 class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[170px] pointer-events-auto">
+            </div>
           </div>
-          <p id="progress-text" class="text-center text-sm text-gray-500 mt-1">配對進度：0 / 11</p>
+
+          <p class="text-xs text-slate-500 mt-2 text-center">
+            方框為配對目標（拖到方框）；配對完成後可點擊方框查看特色。
+          </p>
         </div>
 
-        <div id="info-panel" class="info-panel rounded-3xl shadow-xl p-4 panel-tight min-h-[280px] flex flex-col items-center justify-center">
-          <div id="info-content" class="text-center">
-            <div class="text-6xl mb-3">🚉</div>
-            <p class="text-lg text-amber-800 font-medium">
-              點擊已配對的方框<br>來看看當地的特色吧！
-            </p>
-          </div>
-        </div>
+        <!-- Right Panel -->
+        <div class="lg:w-1/3 flex flex-col gap-4">
 
+          <div class="bg-white rounded-3xl shadow-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-lg font-bold text-orange-600">🎴 車站卡片</span>
+              <button id="reset-btn"
+                class="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-4 py-2 rounded-full text-sm font-bold hover:from-pink-500 hover:to-rose-500 transition-all shadow-md hover:shadow-lg">
+                🔄 重新開始
+              </button>
+            </div>
+
+            <div id="cards-container" class="flex flex-wrap gap-2 justify-center min-h-[120px]"></div>
+
+            <div id="progress-bar" class="mt-3 bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div id="progress-fill"
+                class="bg-gradient-to-r from-green-400 to-emerald-500 h-full transition-all duration-500"
+                style="width: 0%"></div>
+            </div>
+            <p id="progress-text" class="text-center text-sm text-gray-500 mt-1">配對進度：0 / 11</p>
+          </div>
+
+          <div id="info-panel" class="info-panel rounded-3xl shadow-xl p-4 min-h-[280px] flex flex-col items-center justify-center">
+            <div id="info-content" class="text-center">
+              <div class="text-6xl mb-3">🚉</div>
+              <p class="text-lg text-amber-800 font-medium">
+                點擊已配對的方框<br>來看看當地的特色吧！
+              </p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
@@ -216,7 +215,7 @@
           <rect x="25" y="50" width="15" height="25" rx="2" fill="#CD853F"/>
           <rect x="45" y="45" width="18" height="30" rx="2" fill="#DEB887"/>
           <rect x="68" y="55" width="12" height="20" rx="2" fill="#CD853F"/>
-          <circle cx="75" y="30" r="8" fill="#FFD700"/>
+          <circle cx="75" cy="30" r="8" fill="#FFD700"/>
           <text x="75" y="34" text-anchor="middle" fill="#8B4513" font-size="10">⛏️</text>
           <rect x="30" y="80" width="40" height="8" rx="2" fill="#696969"/>
           <circle cx="38" cy="88" r="4" fill="#333"/>
@@ -386,7 +385,6 @@
     let matchedStations = new Set();
     let currentCards = [];
     let draggedCard = null;
-
     let clonedCard = null;
 
     function shuffleArray(array) {
@@ -398,48 +396,6 @@
       return shuffled;
     }
 
-    /**
-     * ✅ object-fit: contain 時，圖片會有留白
-     * 這裡算出「圖片實際顯示在 map-wrap 裡的矩形」(client px)
-     */
-    function getDisplayedImageRect() {
-      const mapWrap = document.getElementById('map-wrap');
-      const img = document.getElementById('rail-map');
-
-      const wrapRect = mapWrap.getBoundingClientRect();
-      const wrapW = wrapRect.width;
-      const wrapH = wrapRect.height;
-
-      const naturalW = img.naturalWidth || wrapW;
-      const naturalH = img.naturalHeight || wrapH;
-
-      const imgRatio = naturalW / naturalH;
-      const wrapRatio = wrapW / wrapH;
-
-      let drawnW, drawnH, offsetX, offsetY;
-
-      // contain 計算
-      if (imgRatio > wrapRatio) {
-        drawnW = wrapW;
-        drawnH = wrapW / imgRatio;
-        offsetX = 0;
-        offsetY = (wrapH - drawnH) / 2;
-      } else {
-        drawnH = wrapH;
-        drawnW = wrapH * imgRatio;
-        offsetY = 0;
-        offsetX = (wrapW - drawnW) / 2;
-      }
-
-      return {
-        left: wrapRect.left + offsetX,
-        top: wrapRect.top + offsetY,
-        width: drawnW,
-        height: drawnH,
-        wrapRect
-      };
-    }
-
     function redrawLinksUsingLabelRects() {
       const svg = document.getElementById('links-layer');
       const mapWrap = document.getElementById('map-wrap');
@@ -449,7 +405,6 @@
       svg.innerHTML = '';
       if (defs) svg.appendChild(defs);
 
-      const imgRect = getDisplayedImageRect();
       const wrapRect = mapWrap.getBoundingClientRect();
 
       labels.forEach(label => {
@@ -457,7 +412,7 @@
         const pos = stationPositions[id];
         if (!pos) return;
 
-        // 起點：方框中心（轉成 SVG 百分比）
+        // 起點：方框中心（轉為 map-wrap 的百分比）
         const labelRect = label.getBoundingClientRect();
         const centerX = labelRect.left + labelRect.width / 2;
         const centerY = labelRect.top + labelRect.height / 2;
@@ -465,13 +420,9 @@
         const x1 = ((centerX - wrapRect.left) / wrapRect.width) * 100;
         const y1 = ((centerY - wrapRect.top) / wrapRect.height) * 100;
 
-        // 終點：把 stationPositions(以圖片為基準的%) 映射到「實際顯示圖片矩形」
-        const targetClientX = imgRect.left + (pos.left / 100) * imgRect.width;
-        const targetClientY = imgRect.top + (pos.top / 100) * imgRect.height;
-
-        // 再轉回 wrap 百分比（SVG viewBox 0-100）
-        const x2 = ((targetClientX - wrapRect.left) / wrapRect.width) * 100;
-        const y2 = ((targetClientY - wrapRect.top) / wrapRect.height) * 100;
+        // 終點：直接用 stationPositions（因為圖片排版跟電腦一致，不會有 contain 留白）
+        const x2 = pos.left;
+        const y2 = pos.top;
 
         const cx1 = Math.min(100, x1 + 10);
         const cy1 = y1;
@@ -489,6 +440,10 @@
         svg.appendChild(path);
       });
     }
+
+    const scheduleRedraw = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => redrawLinksUsingLabelRects()));
+    };
 
     function renderStations() {
       document.getElementById('stations-container').innerHTML = ''; // 不顯示白點
@@ -515,9 +470,14 @@
           label.classList.add('matched');
           label.addEventListener('click', () => showStationInfo(station));
         } else {
-          label.addEventListener('dragover', handleDragOverLabel);
-          label.addEventListener('dragleave', handleDragLeaveLabel);
-          label.addEventListener('drop', handleDropOnLabel);
+          label.addEventListener('dragover', (e) => { e.preventDefault(); label.classList.add('drag-over'); });
+          label.addEventListener('dragleave', () => label.classList.remove('drag-over'));
+          label.addEventListener('drop', (e) => {
+            e.preventDefault();
+            label.classList.remove('drag-over');
+            const cardId = e.dataTransfer.getData('text/plain');
+            if (cardId === station.id) matchStation(cardId);
+          });
         }
 
         labelsLayer.appendChild(label);
@@ -538,9 +498,19 @@
           card.dataset.stationId = station.id;
           card.textContent = station.name;
 
-          card.addEventListener('dragstart', handleDragStart);
-          card.addEventListener('dragend', handleDragEnd);
+          card.addEventListener('dragstart', (e) => {
+            draggedCard = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', e.target.dataset.stationId);
+          });
+          card.addEventListener('dragend', (e) => {
+            e.target.classList.remove('dragging');
+            draggedCard = null;
+            document.querySelectorAll('.label-box').forEach(lb => lb.classList.remove('drag-over'));
+          });
 
+          // touch
           card.addEventListener('touchstart', handleTouchStart, { passive: false });
           card.addEventListener('touchmove', handleTouchMove, { passive: false });
           card.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -552,35 +522,6 @@
       if (currentCards.every(s => matchedStations.has(s.id))) {
         container.innerHTML = '<p class="text-green-600 font-bold text-lg">🎉 太棒了！全部配對完成！</p>';
       }
-    }
-
-    function handleDragStart(e) {
-      draggedCard = e.target;
-      e.target.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', e.target.dataset.stationId);
-    }
-
-    function handleDragEnd(e) {
-      e.target.classList.remove('dragging');
-      draggedCard = null;
-      document.querySelectorAll('.label-box').forEach(lb => lb.classList.remove('drag-over'));
-    }
-
-    function handleDragOverLabel(e) {
-      e.preventDefault();
-      e.currentTarget.classList.add('drag-over');
-    }
-    function handleDragLeaveLabel(e) {
-      e.currentTarget.classList.remove('drag-over');
-    }
-
-    function handleDropOnLabel(e) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('drag-over');
-      const cardId = e.dataTransfer.getData('text/plain');
-      const targetId = e.currentTarget.dataset.stationId;
-      if (cardId === targetId) matchStation(cardId);
     }
 
     function handleTouchStart(e) {
@@ -686,11 +627,6 @@
 
       scheduleRedraw();
     }
-
-    // ✅ 更穩的重畫：跑兩次 RAF，確保 DOM 排版完成
-    const scheduleRedraw = () => {
-      requestAnimationFrame(() => requestAnimationFrame(() => redrawLinksUsingLabelRects()));
-    };
 
     function onConfigChange(config) {
       document.getElementById('game-title').textContent = config.game_title || defaultConfig.game_title;
