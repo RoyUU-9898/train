@@ -56,7 +56,7 @@
       box-shadow: 0 10px 22px rgba(34, 197, 94, 0.22);
     }
 
-    /* ✅ iPad 橫向：不改圖片幾何，只縮放整頁，避免箭頭飄 */
+    /* ✅ iPad 橫向：整頁縮放，避免箭頭飄 */
     @media (min-width: 768px) and (max-width: 1200px) and (orientation: landscape) {
       body { overflow: hidden; }
       #app { padding: 6px !important; }
@@ -94,9 +94,10 @@
           </div>
 
           <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50" id="map-wrap">
+            <!-- ✅ 地圖底圖改成本地檔案 -->
             <img
               id="rail-map"
-              src="https://i.ibb.co/DPC0xtz8/image-psd.jpg"
+              src="./image.psd.jpg"
               class="w-full h-auto block select-none pointer-events-none"
               alt="rail map"
             />
@@ -150,7 +151,7 @@
             <p id="progress-text" class="text-center text-sm text-gray-500 mt-1">配對進度：0 / 11</p>
           </div>
 
-          <!-- Info Panel (新版：文字 + 圖片暫存區) -->
+          <!-- Info Panel -->
           <div id="info-panel" class="info-panel rounded-3xl shadow-xl p-4 min-h-[280px] flex flex-col">
             <div id="info-content" class="h-full flex flex-col">
               <div class="text-center">
@@ -176,7 +177,7 @@
       instruction_text: '把右邊的車站名稱拖到左邊正確的方框吧！'
     };
 
-    // ✅ 你提供的「統整文字 + 風景圖」
+    // ✅ 統整文字 + ✅ 改成本地圖片（跟 taiwan.html 同一層）
     const stationsData = [
       {
         id: 'songshan',
@@ -186,7 +187,7 @@
           '饒河街夜市，代表性台式夜市文化',
           '鄰近松山文創園區，結合歷史與創意產業'
         ],
-        imageUrl: 'https://i.ibb.co/DfD7JXsH/image.jpg'
+        imageUrl: './songshan.jpg'
       },
       {
         id: 'ruifang',
@@ -196,7 +197,7 @@
           '通往九份、金瓜石的重要門戶',
           '擁有濃厚日治時期礦業歷史'
         ],
-        imageUrl: 'https://i.ibb.co/SCtHSYh/image.jpg'
+        imageUrl: './ruifang.jpg'
       },
       {
         id: 'houtong',
@@ -206,7 +207,7 @@
           '舊礦區轉型成功的典範',
           '山城鐵道聚落，風景清幽'
         ],
-        imageUrl: 'https://i.ibb.co/TDqvNPhK/image.jpg'
+        imageUrl: './houtong.jpg'
       },
       {
         id: 'sandiaoling',
@@ -216,7 +217,7 @@
           '環繞溪谷、瀑布與原始自然',
           '人煙稀少，保有純樸山林感'
         ],
-        imageUrl: 'https://i.ibb.co/1Jd6Cb6y/image.jpg'
+        imageUrl: './sandiaoling.jpg'
       },
       {
         id: 'mudan',
@@ -226,7 +227,7 @@
           '周邊自然景觀完整',
           '保有早期鐵路支線氛圍'
         ],
-        imageUrl: 'https://i.ibb.co/pv9DkxSs/image.jpg'
+        imageUrl: './mudan.jpg'
       },
       {
         id: 'shuangxi',
@@ -236,7 +237,7 @@
           '適合健行、溯溪與古道旅行',
           '仍保有傳統鄉鎮生活樣貌'
         ],
-        imageUrl: 'https://i.ibb.co/Vc01VRj2/image.jpg'
+        imageUrl: './shuangxi.jpg'
       },
       {
         id: 'gongliao',
@@ -246,7 +247,7 @@
           '結合漁村文化與自然海景海洋',
           '音樂祭舉辦地'
         ],
-        imageUrl: 'https://i.ibb.co/TBkZdB1y/image.jpg'
+        imageUrl: './gongliao.jpg'
       },
       {
         id: 'fulong',
@@ -256,7 +257,7 @@
           '福隆便當是鐵路美食代表',
           '夏季觀光與音樂活動熱點'
         ],
-        imageUrl: 'https://i.ibb.co/qLSV3Zkh/image.jpg'
+        imageUrl: './fulong.jpg'
       },
       {
         id: 'yilan',
@@ -266,7 +267,7 @@
           '美食密集（蔥油餅、鴨賞等）',
           '山海資源豐富，觀光多元'
         ],
-        imageUrl: 'https://i.ibb.co/B5XY3GYZ/image.jpg'
+        imageUrl: './yilan.jpg'
       },
       {
         id: 'suao',
@@ -276,7 +277,7 @@
           '蘇澳冷泉，世界少見自然景觀',
           '鐵路與港口並存的重要城鎮'
         ],
-        imageUrl: 'https://i.ibb.co/Qvzj7w3C/image.jpg'
+        imageUrl: './suao.jpg'
       },
       {
         id: 'hualien',
@@ -286,7 +287,7 @@
           '太魯閣國家公園入口城市',
           '原住民文化與慢活旅遊代表'
         ],
-        imageUrl: 'https://i.ibb.co/C5Gqz6sX/image.jpg'
+        imageUrl: './hualien.jpg'
       },
     ];
 
@@ -343,7 +344,6 @@
         const x1 = ((centerX - wrapRect.left) / wrapRect.width) * 100;
         const y1 = ((centerY - wrapRect.top) / wrapRect.height) * 100;
 
-        // 終點：以 stationPositions 百分比為終點（白點已移除，只畫到座標位置）
         const x2 = pos.left;
         const y2 = pos.top;
 
@@ -512,7 +512,6 @@
       if (station) showStationInfo(station);
     }
 
-    // ✅ 新版資訊面板：中間文字、下方圖片（你要的「風景圖暫存區」）
     function showStationInfo(station) {
       const infoContent = document.getElementById('info-content');
 
@@ -522,13 +521,11 @@
 
       infoContent.innerHTML = `
         <div class="bounce-in h-full flex flex-col">
-          <!-- 標題 -->
           <div class="text-center">
             <h3 class="text-xl font-extrabold text-amber-900">🚉 ${station.name}</h3>
             <p class="text-xs text-amber-700 mt-1">特色統整與風景圖</p>
           </div>
 
-          <!-- 中間：特色介紹 -->
           <div class="mt-3 flex-1 rounded-2xl bg-white/70 border border-amber-200 p-3 overflow-auto">
             <div class="text-sm text-amber-900 font-bold mb-2">特色介紹</div>
             <ul class="list-disc pl-5 text-amber-800 text-sm space-y-1">
@@ -536,7 +533,6 @@
             </ul>
           </div>
 
-          <!-- 下方：風景圖暫存區 -->
           <div class="mt-3 rounded-2xl bg-white/70 border border-amber-200 overflow-hidden">
             <div class="px-3 py-2 text-xs font-bold text-amber-900 bg-amber-100/60 border-b border-amber-200">
               風景圖
@@ -549,7 +545,11 @@
                   alt="${station.name} 風景圖"
                   class="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
+                  onerror="this.onerror=null; this.src='./fallback.jpg';"
                 />
+              </div>
+              <div class="text-[11px] text-amber-700 mt-2">
+                若圖片未出現：請確認檔名與 taiwan.html 同一層（例如 ./songshan.jpg）
               </div>
             </div>
           </div>
