@@ -538,20 +538,17 @@
               風景圖
             </div>
 
-            <div class="p-2">
-              <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-amber-50">
-                <img
-                  src="${station.imageUrl}"
-                  alt="${station.name} 風景圖"
-                  class="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                  onerror="this.onerror=null; this.src='./fallback.jpg';"
-                />
-              </div>
-              <div class="text-[11px] text-amber-700 mt-2">
-                若圖片未出現：請確認檔名與 taiwan.html 同一層（例如 ./songshan.jpg）
-              </div>
-            </div>
+           <div class="p-2">
+  <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-amber-50">
+    <img
+      src="${station.imageUrl}"
+      alt="${station.name} 風景圖"
+      class="absolute inset-0 w-full h-full object-cover"
+      loading="lazy"
+      onerror="this.onerror=null; this.src='./fallback.jpg';"
+    />
+  </div>
+</div>
           </div>
         </div>
       `;
