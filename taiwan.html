@@ -73,6 +73,61 @@
       #info-panel { min-height: 210px !important; }
       #cards-container { min-height: 96px !important; }
     }
+
+    /* ✅ 風景圖可點擊提示 */
+    .zoomable-photo { cursor: zoom-in; }
+
+    /* ✅ 放大圖 Modal */
+    .photo-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 14px;
+      backdrop-filter: blur(2px);
+    }
+    .photo-modal.show { display: flex; }
+
+    .photo-modal-card {
+      position: relative;
+      width: min(980px, 96vw);
+      max-height: 92vh;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    .photo-modal-img {
+      width: 100%;
+      height: auto;
+      max-height: 86vh;
+      object-fit: contain;
+      border-radius: 14px;
+      display: block;
+      background: rgba(255,255,255,0.05);
+    }
+    .photo-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 44px;
+      height: 44px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(0,0,0,0.45);
+      color: white;
+      font-size: 22px;
+      line-height: 44px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+    .photo-modal-close:active { transform: scale(0.98); }
   </style>
 </head>
 
@@ -94,7 +149,6 @@
           </div>
 
           <div class="relative w-full overflow-hidden rounded-3xl bg-slate-50" id="map-wrap">
-            <!-- ✅ 地圖底圖改成本地檔案 -->
             <img
               id="rail-map"
               src="./image.psd.jpg"
@@ -102,7 +156,6 @@
               alt="rail map"
             />
 
-            <!-- 箭頭 -->
             <svg id="links-layer"
                  class="absolute inset-0 w-full h-full pointer-events-none"
                  viewBox="0 0 100 100"
@@ -114,10 +167,8 @@
               </defs>
             </svg>
 
-            <!-- 不顯示白點 -->
             <div id="stations-container" class="absolute inset-0 pointer-events-none"></div>
 
-            <!-- 左側方框 -->
             <div id="labels-container"
                  class="absolute top-2 bottom-2 left-2 flex flex-col justify-between gap-2 w-[170px] pointer-events-auto">
             </div>
@@ -171,13 +222,20 @@
     </div>
   </div>
 
+  <!-- 放大圖 Modal -->
+  <div id="photo-modal" class="photo-modal" aria-hidden="true">
+    <div class="photo-modal-card" role="dialog" aria-modal="true" aria-label="放大圖片">
+      <div id="photo-modal-close" class="photo-modal-close" aria-label="關閉">✕</div>
+      <img id="photo-modal-img" class="photo-modal-img" alt="放大風景圖" />
+    </div>
+  </div>
+
   <script>
     const defaultConfig = {
       game_title: '🚂 台灣鐵路車站配對遊戲 🚃',
       instruction_text: '把右邊的車站名稱拖到左邊正確的方框吧！'
     };
 
-    // ✅ 統整文字 + ✅ 改成本地圖片（跟 taiwan.html 同一層）
     const stationsData = [
       {
         id: 'songshan',
@@ -312,6 +370,42 @@
     // touch
     let clonedCard = null;
 
+    /* 放大圖 Modal 控制 */
+    const photoModal = document.getElementById('photo-modal');
+    const photoModalImg = document.getElementById('photo-modal-img');
+    const photoModalClose = document.getElementById('photo-modal-close');
+
+    function openPhotoModal(src, altText) {
+      if (!photoModal || !photoModalImg) return;
+      photoModalImg.src = src;
+      photoModalImg.alt = altText || '放大風景圖';
+      photoModal.classList.add('show');
+      photoModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePhotoModal() {
+      if (!photoModal || !photoModalImg) return;
+      photoModal.classList.remove('show');
+      photoModal.setAttribute('aria-hidden', 'true');
+      photoModalImg.src = '';
+      document.body.style.overflow = '';
+    }
+
+    if (photoModalClose) {
+      photoModalClose.addEventListener('click', closePhotoModal);
+    }
+    if (photoModal) {
+      photoModal.addEventListener('click', (e) => {
+        if (e.target === photoModal) closePhotoModal();
+      });
+    }
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && photoModal && photoModal.classList.contains('show')) {
+        closePhotoModal();
+      }
+    });
+
     function shuffleArray(array) {
       const shuffled = [...array];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -369,7 +463,7 @@
     };
 
     function renderStations() {
-      document.getElementById('stations-container').innerHTML = ''; // 不顯示白點
+      document.getElementById('stations-container').innerHTML = '';
 
       const labelsLayer = document.getElementById('labels-container');
       labelsLayer.innerHTML = '';
@@ -541,9 +635,10 @@
             <div class="p-2">
               <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-amber-50">
                 <img
+                  id="station-photo"
                   src="${station.imageUrl}"
                   alt="${station.name} 風景圖"
-                  class="absolute inset-0 w-full h-full object-cover"
+                  class="zoomable-photo absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                   onerror="this.onerror=null; this.src='./fallback.jpg';"
                 />
@@ -552,6 +647,13 @@
           </div>
         </div>
       `;
+
+      const img = infoContent.querySelector('#station-photo');
+      if (img) {
+        img.addEventListener('click', () => {
+          openPhotoModal(img.src, img.alt);
+        });
+      }
     }
 
     function updateProgress() {
@@ -603,7 +705,11 @@
       ]);
     }
 
-    document.getElementById('reset-btn').addEventListener('click', resetGame);
+    /* ✅ 修改：重新開始前確認（防誤觸） */
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      const ok = confirm('確定要重新開始嗎？目前的配對進度會清除。');
+      if (ok) resetGame();
+    });
 
     if (window.elementSdk) {
       window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
